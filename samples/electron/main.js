@@ -8,7 +8,7 @@ const path = require('path')
 const url = require('url')
 
 const residue = require('residue');
-const logger = residue.Logger('sample-app');
+const logger = residue.getLogger('sample-app');
 
 const residueParams = {
     app: 'Electron QuickStart App with Residue',
