@@ -1,8 +1,8 @@
 {
   "name": "residue",
-  "version": "1.0.0-beta",
+  "version": "1.0.0-beta.2",
   "description": "Logging client for real-time centralized logging server.",
-  "main": "residue.js",
+  "main": "src/residue.js",
   "scripts": {
     "test": "echo \"No tests available\" && exit 1"
   },
