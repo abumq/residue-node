@@ -11,9 +11,8 @@ const residue = require('residue');
 const logger = residue.getLogger('sample-app');
 
 const residueParams = {
-    app: 'Electron QuickStart App with Residue',
-    host: 'localhost',
-    connect_port: 8777,
+    application_id: 'Electron QuickStart App with Residue',
+    ur: 'localhost:8777',
     access_codes: [
         { logger_id: 'sample-app', code: 'a2dcb' }
     ]

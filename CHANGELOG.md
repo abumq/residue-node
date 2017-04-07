@@ -8,6 +8,7 @@
 
 ### Changes
 - Moved to separate repo
+- Updated API to use configurations as C++ API
 
 ## [1.0.0-beta] - 31-03-2017
 ### Added
