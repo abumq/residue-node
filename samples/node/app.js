@@ -14,8 +14,8 @@ var residueParams = {
     url: "localhost:8777",
     access_codes: [
         {
-            logger_id: "securitybox-businesslogger",
-            code: "134193F1A993FA6A4FE"
+            logger_id: "sample-app",
+            code: "a2dcb"
         }
     ],
     application_id: "com.muflihun.securitybox",
