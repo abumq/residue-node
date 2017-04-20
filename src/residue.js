@@ -9,6 +9,7 @@
 // https://github.com/muflihun/residue
 //
 
+const fs = require('fs');
 const net = require('net');
 const zlib = require('zlib');
 const crypto = require('crypto');
@@ -47,7 +48,7 @@ const Params = {
     debugging: false,
     verboseLevel: 9,
 
-    // Status for sockets 
+    // Status for sockets
     token_socket_connected: false,
     logging_socket_connected: false,
 
@@ -115,16 +116,16 @@ const Utils = {
     base64Encode: function(str) {
         return new Buffer(str).toString('base64');
     },
-    
+
     base64Decode: function(encoded) {
         return new Buffer(encoded, 'base64').toString('utf-8');
     },
-    
+
     // Get current date in microseconds
     now: function() {
-        return parseInt((new Date()).getTime() / 1000, 10);    
+        return parseInt((new Date()).getTime() / 1000, 10);
     },
-    
+
     // Send request to the server
     // This function decides whether to back-log the request or dispatch it to
     // the server
@@ -157,7 +158,7 @@ const Utils = {
                 let iv = new Buffer(crypto.randomBytes(16), 'hex');
                 let cipher = crypto.createCipheriv('aes-256-cbc', new Buffer(Params.connection.key, 'hex'), iv);
                 encryptedRequest = iv.toString('hex') + ':' + Params.connection.client_id + ':' + cipher.update(finalRequest, 'utf-8', 'base64') + cipher.final('base64') + PACKET_DELIMITER;
-            } catch (err) {        
+            } catch (err) {
                 Utils.debugLog(err);
             }
         } else {
@@ -181,7 +182,7 @@ const Utils = {
             Utils.debugLog(e);
         }
     },
-    
+
     // Decrypt response from the server using symmetric key
     decrypt: function(response) {
         if (Params.connection === null) {
@@ -203,10 +204,10 @@ const Utils = {
         } catch (err) {
             Utils.debugLog(err);
         }
-                
+
         return null;
     },
-    
+
     // Decrypt response from the server using asymetric key
     decryptRSA: function(response) {
         try {
@@ -216,7 +217,7 @@ const Utils = {
         }
         return null;
     },
-    
+
     // Encrypts string using key
     encryptRSA: function(str, key) {
         try {
@@ -238,7 +239,7 @@ Params.connection_socket.on('data', function(data) {
         Utils.log('Unable to read response: ' + data);
         return;
     }
-    const dataJson = JSON.parse(decryptedData.toString());    
+    const dataJson = JSON.parse(decryptedData.toString());
     Utils.debugLog('Connection: ');
     Utils.debugLog(dataJson);
     if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 0) {
@@ -447,16 +448,16 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
        Params.logging_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, verboseLevel);
        });
-       return; 
+       return;
     }
 
     if (!Params.connected) {
         Utils.log('Not connected to the server yet');
         return;
     }
-    
+
     Utils.debugLog("Checking health...");
-    
+
     if (!isClientValid()) {
         Utils.debugLog("Resetting connection...");
         Params.logging_socket_callbacks.push(function() {
@@ -467,7 +468,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
         connect(Params.options);
         return;
     }
-    
+
     if (shouldSendPing(60)) {
         Params.logging_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, verboseLevel);
@@ -475,7 +476,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
         sendPing();
         return;
     }
-    
+
     if (!hasValidToken(loggerId)) {
         Params.token_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, verboseLevel);
@@ -483,10 +484,10 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
         obtainToken(loggerId);
         return;
     }
-    
+
     Utils.debugLog("Sending log request...");
 
-    
+
     let datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
     if (Params.options.time_offset) {
         datetime += (1000 * Params.options.time_offset); // offset is in seconds
@@ -498,7 +499,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
         msg: logMessage,
         file: sourceFile,
         line: sourceLine,
-        app: Params.options.app,
+        app: Params.options.application_id,
         level: level
     };
     if (typeof verboseLevel !== 'undefined') {
@@ -506,6 +507,12 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
     }
     Utils.sendRequest(request, Params.logging_socket, false, Params.options.plain_request && Utils.hasFlag(Flag.ALLOW_PLAIN_LOG_REQUEST), Utils.hasFlag(Flag.COMPRESSION));
 }
+
+function isNormalInteger(str) {
+    var n = Math.floor(Number(str));
+    return String(n) === str && n >= 0;
+}
+
 
 // Securily connect to residue server using defined options
 connect = function(options) {
@@ -517,23 +524,38 @@ connect = function(options) {
     let client = Params.connection_socket;
     try {
         Params.options = typeof options === 'undefined' ? Params.options : options;
-        Utils.log('Connecting to Residue server...');
-        if (typeof Params.options.client_id === 'undefined' 
-                && typeof Params.options.client_private_key === 'undefined') {
-            const keySize = Params.options.key_size || 2048;
+        // Normalize
+        if (typeof Params.options.url !== 'undefined') {
+          const parts = Params.options.url.split(':');
+          if (parts.length < 2 || !isNormalInteger(parts[1])) {
+            throw "Invalid URL format for residue";
+          }
+          Params.options.host = parts[0];
+          Params.options.connect_port = parseInt(parts[1]);
+        }
+        if (typeof Params.options.client_private_key !== 'undefined') {
+          Params.options.client_private_key_contents = fs.readFileSync(Params.options.client_private_key).toString();
+        }
+        if (typeof Params.options.server_public_key !== 'undefined') {
+          Params.options.server_public_key_contents = fs.readFileSync(Params.options.server_public_key).toString();
+        }
+        Utils.log('Connecting to the Residue server...');
+        if (typeof Params.options.client_id === 'undefined'
+                && typeof Params.options.client_private_key_contents === 'undefined') {
+            const keySize = Params.options.rsa_key_size || 2048;
             Utils.log('Generating ' + (keySize / 8) + '-bit RSA key...');
             Params.rsa_key = new NodeRSA({b: keySize});
             Params.rsa_key.setOptions({encryptionScheme: 'pkcs1'});
             Utils.log('Key generated');
         } else {
             Utils.log('Known client...');
-            Params.rsa_key = new NodeRSA(Params.options.client_private_key);
+            Params.rsa_key = new NodeRSA(Params.options.client_private_key_contents);
             Params.rsa_key.setOptions({encryptionScheme: 'pkcs1'});
         }
         client.connect(Params.options.connect_port, Params.options.host, function() {
             let request;
-            if (typeof Params.options.client_id !== 'undefined' 
-                    && typeof Params.options.client_private_key !== 'undefined') {
+            if (typeof Params.options.client_id !== 'undefined'
+                    && typeof Params.options.client_private_key_contents !== 'undefined') {
                 request = {
                     type: ConnectType.Connect,
                     client_id: Params.options.client_id
@@ -545,8 +567,8 @@ connect = function(options) {
                 };
             }
             let r = JSON.stringify(request);
-            if (typeof Params.options.server_public_key !== 'undefined') {
-                const publicKeyObj = new NodeRSA(Params.options.server_public_key);
+            if (typeof Params.options.server_public_key_contents !== 'undefined') {
+                const publicKeyObj = new NodeRSA(Params.options.server_public_key_contents);
                 publicKeyObj.setOptions({encryptionScheme: 'pkcs1'});
                 r = Utils.encryptRSA(r, publicKeyObj);
             }
@@ -599,31 +621,31 @@ getSourceLine = function() {
 // Logger interface for user to send log messages to server
 Logger = function(id) {
     this.id = id;
-    
+
     this.info = function(message) {
         sendLogRequest(message, LoggingLevels.Info, this.id, getSourceFile(), getSourceLine());
     }
-    
+
     this.error = function(message) {
         sendLogRequest(message, LoggingLevels.Error, this.id, getSourceFile(), getSourceLine());
     }
-    
+
     this.debug = function(message) {
         sendLogRequest(message, LoggingLevels.Debug, this.id, getSourceFile(), getSourceLine());
     }
-    
+
     this.warn = function(message) {
         sendLogRequest(message, LoggingLevels.Warn, this.id, getSourceFile(), getSourceLine());
     }
-    
+
     this.trace = function(message) {
         sendLogRequest(message, LoggingLevels.Trace, this.id, getSourceFile(), getSourceLine());
     }
-    
+
     this.fatal = function(message) {
         sendLogRequest(message, LoggingLevels.Fatal, this.id, getSourceFile(), getSourceLine());
     }
-    
+
     this.verbose = function(message, level) {
         sendLogRequest(message, LoggingLevels.Verbose, this.id, getSourceFile(), getSourceLine(), level);
     }

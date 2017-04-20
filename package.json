@@ -1,6 +1,6 @@
 {
   "name": "residue",
-  "version": "1.0.0-beta.2",
+  "version": "1.0.0-beta.3",
   "description": "Logging client for real-time centralized logging server.",
   "main": "src/residue.js",
   "scripts": {
@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/muflihun/residue.git"
+    "url": "git+https://github.com/muflihun/residue-node.git"
   },
   "keywords": [
     "residue",
