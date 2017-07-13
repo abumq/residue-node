@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [1.0.0-beta.6]
 ### Fixed
 - Obtaining token race-condition issue #26
 - Dead client not reconnecting #27
