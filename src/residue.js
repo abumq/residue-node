@@ -7,6 +7,7 @@
 // with latest tokens and ping server when needed to stay alive.
 //
 // https://github.com/muflihun/residue
+// https://github.com/muflihun/residue-node
 //
 
 const fs = require('fs');
@@ -124,6 +125,10 @@ const Utils = {
     // Get current date in microseconds
     now: function() {
         return parseInt((new Date()).getTime() / 1000, 10);
+    },
+    
+    getTimestamp: function() {
+        return Utils.now();
     },
 
     // Send request to the server
@@ -247,6 +252,7 @@ Params.connection_socket.on('data', function(data) {
         Params.connection = dataJson;
         // Need to acknowledge
         const request = {
+            _t: Utils.getTimestamp(),
             type: ConnectType.Acknowledgement,
             client_id: Params.connection.client_id
         };
@@ -345,6 +351,7 @@ obtainToken = function(loggerId, accessCode) {
         return;
     }
     if (Params.lock) {
+        Utils.debugLog('Already locked');
         return;
     }
     if (typeof accessCode === 'undefined') {
@@ -352,9 +359,10 @@ obtainToken = function(loggerId, accessCode) {
         if (typeof Params.options.access_codes !== 'undefined') {
             let found = false;
             Params.options.access_codes.forEach(function(item) {
-                if (item.logger_id === loggerId && typeof item.code !== 'undefined') {
+                if (item.logger_id === loggerId && typeof item.code !== 'undefined' && item.code.length !== 0) {
+                    Utils.debugLog('Found access code');
                     found = true;
-                    obtainToken(item.logger_id, item.code);
+                    accessCode = item.code;
                     return;
                 }
             });
@@ -371,8 +379,7 @@ obtainToken = function(loggerId, accessCode) {
         } else {
             if (Utils.hasFlag(Flag.AUTHORIZE_LOGGERS_WITH_NO_ACCESS_CODE)) {
                 Utils.debugLog('Trying to get token with no access code');
-                // try without access code
-                obtainToken(loggerId, '');
+                accessCode = '';
             } else {
                 Utils.log('ERROR: Loggers without access code are not allowed by the server');
                 return;
@@ -380,7 +387,8 @@ obtainToken = function(loggerId, accessCode) {
         }
     }
     Utils.debugLog('Obtaining token for [' + loggerId + '] with access code [' + accessCode + ']');
-    let request = {
+    const request = {
+        _t: Utils.getTimestamp(),
         logger_id: loggerId,
         access_code: accessCode
     };
@@ -407,6 +415,7 @@ sendPing = function() {
         if (isClientValid()) {
             Utils.debugLog('Pinging...');
             const request = {
+                _t: Utils.getTimestamp(),
                 type: ConnectType.Ping,
                 client_id: Params.connection.client_id
             };
@@ -433,7 +442,7 @@ getToken = function(loggerId) {
 
 hasValidToken = function(loggerId) {
     let t = Params.tokens[loggerId];
-    return typeof t !== 'undefined' && Utils.now() - t.dateCreated < t.life;
+    return typeof t !== 'undefined' && (t.life === 0 || Utils.now() - t.dateCreated < t.life);
 }
 
 // Returns UTC time
@@ -470,6 +479,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
     }
 
     if (shouldSendPing(60)) {
+        Utils.debugLog("Pinging first...");
         Params.logging_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, verboseLevel);
         });
@@ -478,6 +488,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
     }
 
     if (!hasValidToken(loggerId)) {
+        Utils.debugLog("Obtaining token first...");
         Params.token_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, verboseLevel);
         });
@@ -492,7 +503,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
     if (Params.options.time_offset) {
         datetime += (1000 * Params.options.time_offset); // offset is in seconds
     }
-    let request = {
+    const request = {
         token: getToken(loggerId),
         datetime: datetime,
         logger: loggerId,
@@ -557,11 +568,13 @@ connect = function(options) {
             if (typeof Params.options.client_id !== 'undefined'
                     && typeof Params.options.client_private_key_contents !== 'undefined') {
                 request = {
+                    _t: Utils.getTimestamp(),
                     type: ConnectType.Connect,
                     client_id: Params.options.client_id
                 };
             } else {
                 request = {
+                    _t: Utils.getTimestamp(),
                     type: ConnectType.Connect,
                     rsa_public_key: Utils.base64Encode(Params.rsa_key.exportKey('public'))
                 };

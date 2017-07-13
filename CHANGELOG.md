@@ -5,6 +5,7 @@
 - Obtaining token race-condition issue #26
 - Dead client not reconnecting #27
 - Fixed `shouldSendPing()` calculations
+- Fixed issue with verifying token with `0` life
 
 ### Changes
 - Moved to separate repo
