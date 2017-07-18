@@ -12,7 +12,7 @@ const logger = residue.getLogger('sample-app');
 
 const residueParams = {
     application_id: 'Electron QuickStart App with Residue',
-    ur: 'localhost:8777',
+    url: 'localhost:8777',
     access_codes: [
         { logger_id: 'sample-app', code: 'a2dcb' }
     ]

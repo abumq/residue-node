@@ -22,4 +22,4 @@ Connects application to residue using params
 Returns logger class for logging interface
 
 ## Sample
-You can check out [nodeJS sample client app](https://github.com/muflihun/residue-node/blob/master/samples/node) for practical use of this package.
+You can check out [sample client apps](https://github.com/muflihun/residue-node/blob/master/samples) for practical use of this package.

@@ -1,5 +1,9 @@
 # Change Log
 
+## [Unreleased]
+### Fixed
+- Fixed log for generating key size
+
 ## [1.0.0-beta.6]
 ### Fixed
 - Obtaining token race-condition issue #26

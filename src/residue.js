@@ -554,7 +554,7 @@ connect = function(options) {
         if (typeof Params.options.client_id === 'undefined'
                 && typeof Params.options.client_private_key_contents === 'undefined') {
             const keySize = Params.options.rsa_key_size || 2048;
-            Utils.log('Generating ' + (keySize / 8) + '-bit RSA key...');
+            Utils.log('Generating ' + keySize + '-bit RSA key...');
             Params.rsa_key = new NodeRSA({b: keySize});
             Params.rsa_key.setOptions({encryptionScheme: 'pkcs1'});
             Utils.log('Key generated');
