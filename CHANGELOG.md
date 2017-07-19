@@ -2,9 +2,14 @@
 
 ## [Unreleased]
 ### Fixed
+- Fixed log for generating key size
+
+## [1.0.0-beta.6]
+### Fixed
 - Obtaining token race-condition issue #26
 - Dead client not reconnecting #27
 - Fixed `shouldSendPing()` calculations
+- Fixed issue with verifying token with `0` life
 
 ### Changes
 - Moved to separate repo
