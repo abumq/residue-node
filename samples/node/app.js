@@ -32,9 +32,14 @@ app.get('*', function(req, res, next) {
     return next();
 });
 
+function namedFunc() {
+    logger.debug('this is from named func');
+}
+
 app.get('/', function (req, res) {
     logger.info('Another log');
-    logger.info('Info Hello World!');
+    logger.debug('Info Hello World!');
+    namedFunc();
     res.send('Hello World!');
 });
 
