@@ -10,6 +10,8 @@ This module provides interface for connecting and interacting with residue serve
 ## Native API
 This library depends on following native modules, without them library will not work:
 
+ * [Path Module](https://nodejs.org/api/path.html)
+ * [File System Module](https://nodejs.org/api/fs.html)
  * [Crypto Module](https://nodejs.org/api/crypto.html)
  * [ZLib Module](https://nodejs.org/api/zlib.html)
  * [Net Module](https://nodejs.org/api/net.html)
@@ -34,6 +36,8 @@ Valid options are:
     time_offset: <time_offset_in_seconds [optional]>,
     client_id: <client_id_that_server_knows_you_as [optional]>,
     client_private_key: <full_path_of_private_key> [must be provided with client_id],
+    client_public_key: <full_path_of_public_key> [must be provided with client_id],
+    client_key_secret: <secret (passphrase) for encrypted private key if any>,
     server_public_key: <full_path_of_server_public_key>
 }
 ```

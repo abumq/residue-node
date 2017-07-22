@@ -11,6 +11,7 @@
 //
 
 const fs = require('fs');
+const path = require('path');
 const net = require('net');
 const zlib = require('zlib');
 const crypto = require('crypto');
@@ -25,8 +26,11 @@ const Params = {
     //   client_id, age, date_created, key, logging_port, token_port
     connection: null,
 
-    // rsa_key is NodeRSA object
+    // rsa_key is keypair object
     rsa_key: null,
+
+    // server_rsa_key is keypair object
+    server_rsa_key: null,
 
     // whether connected to the server or not
     connected: false,
@@ -86,7 +90,7 @@ const Flag = {
   COMPRESSION: 512
 };
 
-const PACKET_DELIMITER = "\r\n\r\n";
+const PACKET_DELIMITER = '\r\n\r\n';
 
 // Utility static functions
 const Utils = {
@@ -183,7 +187,7 @@ const Utils = {
                 }, 10);
             });
         } catch (e) {
-            Utils.debugLog("Error while writing to socket...");
+            Utils.debugLog('Error while writing to socket...');
             Utils.debugLog(e);
         }
     },
@@ -212,23 +216,33 @@ const Utils = {
 
         return null;
     },
+    
+    generateKeypair: function(keySize) {
+        const key = new NodeRSA({b: keySize});
+        key.setOptions({encryptionScheme: 'pkcs1'});
+        Utils.debugLog('Key generated');
+        return {
+            privatePEM: key.exportKey('private'),
+            publicPEM: key.exportKey('public'),
+        };
+    },
 
     // Decrypt response from the server using asymetric key
-    decryptRSA: function(response) {
+    decryptRSA: function(response, privateKey) {
         try {
-            return Params.rsa_key.decrypt(new Buffer(response.toString(), 'base64'), 'utf-8');
+            return crypto.privateDecrypt(privateKey, new Buffer(response.toString(), 'base64')).toString('utf-8');
         } catch (err) {
-            Utils.debugLog(err);
+            Utils.log(err);
         }
         return null;
     },
 
     // Encrypts string using key
-    encryptRSA: function(str, key) {
+    encryptRSA: function(str, publicKey) {
         try {
-            return key.encrypt(new Buffer(str, 'utf-8'), 'base64');
+            return crypto.publicEncrypt(publicKey, new Buffer(str, 'utf-8')).toString('base64');
         } catch (err) {
-            Utils.debugLog(err);
+            Utils.log(err);
         }
         return null;
     }
@@ -238,7 +252,7 @@ const Utils = {
 Params.connection_socket.on('data', function(data) {
     let decryptedData = Utils.decrypt(data);
     if (decryptedData === null) {
-        decryptedData = Utils.decryptRSA(data);
+        decryptedData = Utils.decryptRSA(data, Params.rsa_key.privateKey);
     }
     if (decryptedData === null) {
         Utils.log('Unable to read response: ' + data);
@@ -317,7 +331,7 @@ Params.token_socket.on('data', function(data) {
     }
     Utils.debugLog(decryptedData.toString());
     const dataJson = JSON.parse(decryptedData.toString());
-    Utils.debugLog("Decoded json successfully");
+    Utils.debugLog('Decoded json successfully');
     if (dataJson.status === 0) {
         dataJson.dateCreated = Utils.now();
         Params.tokens[dataJson.loggerId] = dataJson;
@@ -421,7 +435,7 @@ sendPing = function() {
             };
             Utils.sendRequest(request, Params.connection_socket);
         } else {
-            Utils.log("Could not ping, client already dead " + (Params.connection.date_created + Params.connection.age) + " < " + Utils.now());
+            Utils.log('Could not ping, client already dead ' + (Params.connection.date_created + Params.connection.age) + ' < ' + Utils.now());
         }
     }
 }
@@ -465,10 +479,10 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         return;
     }
 
-    Utils.debugLog("Checking health...");
+    Utils.debugLog('Checking health...');
 
     if (!isClientValid()) {
-        Utils.debugLog("Resetting connection...");
+        Utils.debugLog('Resetting connection...');
         Params.logging_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
@@ -479,7 +493,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     }
 
     if (shouldSendPing(60)) {
-        Utils.debugLog("Pinging first...");
+        Utils.debugLog('Pinging first...');
         Params.logging_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
@@ -488,7 +502,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     }
 
     if (!hasValidToken(loggerId)) {
-        Utils.debugLog("Obtaining token first...");
+        Utils.debugLog('Obtaining token first...');
         Params.token_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
@@ -496,8 +510,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         return;
     }
 
-    Utils.debugLog("Sending log request...");
-
+    Utils.debugLog('Sending log request...');
 
     let datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
     if (Params.options.time_offset) {
@@ -512,7 +525,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         line: sourceLine,
         func: sourceFunc,
         app: Params.options.application_id,
-        level: level
+        level: level,
     };
     if (typeof verboseLevel !== 'undefined') {
         request.vlevel = verboseLevel;
@@ -520,21 +533,20 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     Utils.sendRequest(request, Params.logging_socket, false, Params.options.plain_request && Utils.hasFlag(Flag.ALLOW_PLAIN_LOG_REQUEST), Utils.hasFlag(Flag.COMPRESSION));
 }
 
-function isNormalInteger(str) {
+isNormalInteger = function(str) {
     var n = Math.floor(Number(str));
     return String(n) === str && n >= 0;
 }
 
 loadConfiguration = function(jsonFilename) {
     if (typeof jsonFilename === 'undefined') {
-        console.log('Please select JSON filename that contains configurations');
+        Utils.log('Please select JSON filename that contains configurations');
         return false;
     }
-    Params.options = JSON.parse(fs.readFileSync(jsonFilename, 'utf8'));
+    Params.options = JSON.parse(fs.readFileSync(path.resolve(jsonFilename), 'utf8'));
     Utils.log('Configuration loaded');
     return true;
 }
-
 
 // Securily connect to residue server using defined options
 connect = function(options) {
@@ -550,51 +562,67 @@ connect = function(options) {
         if (typeof Params.options.url !== 'undefined') {
           const parts = Params.options.url.split(':');
           if (parts.length < 2 || !isNormalInteger(parts[1])) {
-            throw "Invalid URL format for residue";
+            throw 'Invalid URL format for residue';
           }
           Params.options.host = parts[0];
           Params.options.connect_port = parseInt(parts[1]);
         }
-        if (typeof Params.options.client_private_key !== 'undefined') {
-          Params.options.client_private_key_contents = fs.readFileSync(Params.options.client_private_key).toString();
-        }
-        if (typeof Params.options.server_public_key !== 'undefined') {
-          Params.options.server_public_key_contents = fs.readFileSync(Params.options.server_public_key).toString();
-        }
-        Utils.log('Connecting to the Residue server...');
-        if (typeof Params.options.client_id === 'undefined'
-                && typeof Params.options.client_private_key_contents === 'undefined') {
+        if (typeof Params.options.client_id === 'undefined' &&
+                typeof Params.options.client_private_key === 'undefined' &&
+                typeof Params.options.client_public_key === 'undefined') {
+            // Generate new key for key-exchange
             const keySize = Params.options.rsa_key_size || 2048;
-            Utils.log('Generating ' + keySize + '-bit RSA key...');
-            Params.rsa_key = new NodeRSA({b: keySize});
-            Params.rsa_key.setOptions({encryptionScheme: 'pkcs1'});
+            Utils.log('Generating ' + keySize + '-bit key...');
+            const generatedKey = Utils.generateKeypair(keySize);
+            Params.rsa_key = {
+                isGenerated: true,
+                privateKey: {
+                    key: generatedKey.privatePEM,
+                    padding: crypto.constants.RSA_PKCS1_PADDING,
+                },
+                publicKey: {
+                    key: generatedKey.publicPEM,
+                    padding: crypto.constants.RSA_PKCS1_PADDING,
+                }
+            };
             Utils.log('Key generated');
         } else {
+            Params.rsa_key = {
+                generated: false,
+                privateKey: {
+                    key: fs.readFileSync(path.resolve(Params.options.client_private_key)).toString(),
+                    passphrase: Params.options.client_key_secret || null,
+                    padding: crypto.constants.RSA_PKCS1_PADDING,
+                },
+                publicKey: {
+                    key: fs.readFileSync(path.resolve(Params.options.client_public_key)).toString(),
+                    padding: crypto.constants.RSA_PKCS1_PADDING,
+                },
+            };
             Utils.log('Known client...');
-            Params.rsa_key = new NodeRSA(Params.options.client_private_key_contents);
-            Params.rsa_key.setOptions({encryptionScheme: 'pkcs1'});
         }
+        if (typeof Params.options.server_public_key !== 'undefined') {
+            Params.server_rsa_key = {
+                publicKey: {
+                    key: fs.readFileSync(path.resolve(Params.options.server_public_key)).toString(),
+                    padding: crypto.constants.RSA_PKCS1_PADDING,
+                },
+            };
+        }
+        Utils.log('Connecting to the Residue server...');
         client.connect(Params.options.connect_port, Params.options.host, function() {
-            let request;
-            if (typeof Params.options.client_id !== 'undefined'
-                    && typeof Params.options.client_private_key_contents !== 'undefined') {
-                request = {
-                    _t: Utils.getTimestamp(),
-                    type: ConnectType.Connect,
-                    client_id: Params.options.client_id
-                };
+            let request = {
+                _t: Utils.getTimestamp(),
+                type: ConnectType.Connect,
+            };
+            if (Params.rsa_key.isGenerated) {
+                request.rsa_public_key = Utils.base64Encode(Params.rsa_key.publicKey.key);
             } else {
-                request = {
-                    _t: Utils.getTimestamp(),
-                    type: ConnectType.Connect,
-                    rsa_public_key: Utils.base64Encode(Params.rsa_key.exportKey('public'))
-                };
+                request.client_id = Params.options.client_id;
             }
             let r = JSON.stringify(request);
-            if (typeof Params.options.server_public_key_contents !== 'undefined') {
-                const publicKeyObj = new NodeRSA(Params.options.server_public_key_contents);
-                publicKeyObj.setOptions({encryptionScheme: 'pkcs1'});
-                r = Utils.encryptRSA(r, publicKeyObj);
+            if (Params.server_rsa_key !== null) {
+                r = Utils.encryptRSA(r, Params.server_rsa_key.publicKey);
             }
             const fullReq = r + PACKET_DELIMITER;
             client.write(fullReq);

@@ -50,7 +50,8 @@ app.listen(3009, function () {
 
     // Either you can use residueParams or loadConfiguration form file
     // for this sample we use loadConfiguration
-    if (residue.loadConfiguration('client.conf.json')) {
+	const confFile = 'client.conf.json';
+    if (residue.loadConfiguration(confFile)) {
         residue.connect(/*residueParams*/);
     }
 });
