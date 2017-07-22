@@ -10,6 +10,7 @@ var logger = residue.getLogger('sample-app');
 
 var app = express();
 
+/*
 var residueParams = {
     url: "localhost:8777",
     access_codes: [
@@ -26,6 +27,7 @@ var residueParams = {
     client_private_key: "/Users/majid.khan/Projects/residue/samples/clients/netcat/client-256-private.pem",
     server_public_key: "/Users/majid.khan/Projects/residue/samples/clients/netcat/server-1024-public.pem"
 };
+*/
 
 app.get('*', function(req, res, next) {
     logger.info('Request: ' + req.url);
@@ -46,5 +48,9 @@ app.get('/', function (req, res) {
 app.listen(3009, function () {
     console.log('Open http://localhost:3009 on browser');
 
-    residue.connect(residueParams);
+	// Either you can use residueParams or loadConfiguration form file
+	// for this sample we use loadConfiguration
+	if (residue.loadConfiguration('client.conf.json')) {
+    	residue.connect(/*residueParams*/);
+	}
 });

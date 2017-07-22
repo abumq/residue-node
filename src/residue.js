@@ -525,6 +525,16 @@ function isNormalInteger(str) {
     return String(n) === str && n >= 0;
 }
 
+loadConfiguration = function(jsonFilename) {
+	if (typeof jsonFilename === 'undefined') {
+		console.log('Please select JSON filename that contains configurations');
+		return false;
+	}
+	Params.options = JSON.parse(fs.readFileSync(jsonFilename, 'utf8'));
+	Utils.log('Configuration loaded');
+	return true;
+}
+
 
 // Securily connect to residue server using defined options
 connect = function(options) {
@@ -681,6 +691,7 @@ getLogger = function(id) {
     return new Logger(id);
 }
 
+exports.loadConfiguration = loadConfiguration;
 exports.connect = connect;
 exports.disconnect = disconnect;
 exports.getLogger = getLogger;

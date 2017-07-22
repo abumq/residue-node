@@ -5,6 +5,9 @@
 - Fixed log for generating key size
 - Fixed issues with getting correct filename, line number and function name
 
+### Added
+- Added `loadConfiguration` to load configurations from json file
+
 ## [1.0.0-beta.6]
 ### Fixed
 - Obtaining token race-condition issue #26
