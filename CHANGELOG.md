@@ -2,9 +2,12 @@
 
 ## [Unreleased]
 ### Fixed
+- Use `path` module to resolve relative file paths
+
+## [1.0.0-beta.7]
+### Fixed
 - Fixed log for generating key size
 - Fixed issues with getting correct filename, line number and function name
-- Use `path` module to resolve relative file paths
 
 ### Added
 - Added `loadConfiguration` to load configurations from json file
