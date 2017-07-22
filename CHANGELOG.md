@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [1.0.0-beta.8]
 ### Fixed
 - Use `path` module to resolve relative file paths
 
