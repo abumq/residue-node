@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.0.0-beta.8]
+## [1.0.0-beta.9]
 ### Fixed
 - Use `path` module to resolve relative file paths
 
