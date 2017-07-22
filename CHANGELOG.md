@@ -7,6 +7,7 @@
 ### Updates
 - Use `crypto` module for RSA operations
 - Ability to use encrypted private key
+- Ability to specify public key for encrypted private keys
 
 ## [1.0.0-beta.7]
 ### Fixed
