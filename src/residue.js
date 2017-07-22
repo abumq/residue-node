@@ -510,7 +510,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         msg: logMessage,
         file: sourceFile,
         line: sourceLine,
-		func: sourceFunc,
+        func: sourceFunc,
         app: Params.options.application_id,
         level: level
     };
@@ -526,13 +526,13 @@ function isNormalInteger(str) {
 }
 
 loadConfiguration = function(jsonFilename) {
-	if (typeof jsonFilename === 'undefined') {
-		console.log('Please select JSON filename that contains configurations');
-		return false;
-	}
-	Params.options = JSON.parse(fs.readFileSync(jsonFilename, 'utf8'));
-	Utils.log('Configuration loaded');
-	return true;
+    if (typeof jsonFilename === 'undefined') {
+        console.log('Please select JSON filename that contains configurations');
+        return false;
+    }
+    Params.options = JSON.parse(fs.readFileSync(jsonFilename, 'utf8'));
+    Utils.log('Configuration loaded');
+    return true;
 }
 
 
@@ -647,8 +647,8 @@ getSourceLine = function() {
 getSourceFunc = function() {
     const parts = getSourceLocation(' ');
     if (parts.length <= 1) {
-		return 'anonymous';
-	}
+        return 'anonymous';
+    }
     return parts[0];
 }
 

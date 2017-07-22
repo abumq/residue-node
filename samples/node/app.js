@@ -11,7 +11,7 @@ var logger = residue.getLogger('sample-app');
 var app = express();
 
 /*
-var residueParams = {
+const residueParams = {
     url: "localhost:8777",
     access_codes: [
         {
@@ -19,7 +19,7 @@ var residueParams = {
             code: "a2dcb"
         }
     ],
-    application_id: "com.muflihun.securitybox",
+    application_id: "com.muflihun.securitybox",    
     rsa_key_size: 2048,
     utc_time: true,
     time_offset: 0,
@@ -48,9 +48,9 @@ app.get('/', function (req, res) {
 app.listen(3009, function () {
     console.log('Open http://localhost:3009 on browser');
 
-	// Either you can use residueParams or loadConfiguration form file
-	// for this sample we use loadConfiguration
-	if (residue.loadConfiguration('client.conf.json')) {
-    	residue.connect(/*residueParams*/);
-	}
+    // Either you can use residueParams or loadConfiguration form file
+    // for this sample we use loadConfiguration
+    if (residue.loadConfiguration('client.conf.json')) {
+        residue.connect(/*residueParams*/);
+    }
 });
