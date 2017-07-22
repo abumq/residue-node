@@ -540,7 +540,7 @@ isNormalInteger = function(str) {
 
 loadConfiguration = function(jsonFilename) {
     if (typeof jsonFilename === 'undefined') {
-        console.log('Please select JSON filename that contains configurations');
+        Utils.log('Please select JSON filename that contains configurations');
         return false;
     }
     Params.options = JSON.parse(fs.readFileSync(path.resolve(jsonFilename), 'utf8'));
