@@ -90,7 +90,7 @@ const Flag = {
   COMPRESSION: 512
 };
 
-const PACKET_DELIMITER = "\r\n\r\n";
+const PACKET_DELIMITER = '\r\n\r\n';
 
 // Utility static functions
 const Utils = {
@@ -187,7 +187,7 @@ const Utils = {
                 }, 10);
             });
         } catch (e) {
-            Utils.debugLog("Error while writing to socket...");
+            Utils.debugLog('Error while writing to socket...');
             Utils.debugLog(e);
         }
     },
@@ -331,7 +331,7 @@ Params.token_socket.on('data', function(data) {
     }
     Utils.debugLog(decryptedData.toString());
     const dataJson = JSON.parse(decryptedData.toString());
-    Utils.debugLog("Decoded json successfully");
+    Utils.debugLog('Decoded json successfully');
     if (dataJson.status === 0) {
         dataJson.dateCreated = Utils.now();
         Params.tokens[dataJson.loggerId] = dataJson;
@@ -435,7 +435,7 @@ sendPing = function() {
             };
             Utils.sendRequest(request, Params.connection_socket);
         } else {
-            Utils.log("Could not ping, client already dead " + (Params.connection.date_created + Params.connection.age) + " < " + Utils.now());
+            Utils.log('Could not ping, client already dead ' + (Params.connection.date_created + Params.connection.age) + ' < ' + Utils.now());
         }
     }
 }
@@ -479,10 +479,10 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         return;
     }
 
-    Utils.debugLog("Checking health...");
+    Utils.debugLog('Checking health...');
 
     if (!isClientValid()) {
-        Utils.debugLog("Resetting connection...");
+        Utils.debugLog('Resetting connection...');
         Params.logging_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
@@ -493,7 +493,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     }
 
     if (shouldSendPing(60)) {
-        Utils.debugLog("Pinging first...");
+        Utils.debugLog('Pinging first...');
         Params.logging_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
@@ -502,7 +502,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     }
 
     if (!hasValidToken(loggerId)) {
-        Utils.debugLog("Obtaining token first...");
+        Utils.debugLog('Obtaining token first...');
         Params.token_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
@@ -510,7 +510,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         return;
     }
 
-    Utils.debugLog("Sending log request...");
+    Utils.debugLog('Sending log request...');
 
     let datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
     if (Params.options.time_offset) {
@@ -562,7 +562,7 @@ connect = function(options) {
         if (typeof Params.options.url !== 'undefined') {
           const parts = Params.options.url.split(':');
           if (parts.length < 2 || !isNormalInteger(parts[1])) {
-            throw "Invalid URL format for residue";
+            throw 'Invalid URL format for residue';
           }
           Params.options.host = parts[0];
           Params.options.connect_port = parseInt(parts[1]);
