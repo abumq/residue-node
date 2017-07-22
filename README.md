@@ -10,6 +10,8 @@ This module provides interface for connecting and interacting with residue serve
 ## Native API
 This library depends on following native modules, without them library will not work:
 
+ * [Path Module](https://nodejs.org/api/path.html)
+ * [File System Module](https://nodejs.org/api/fs.html)
  * [Crypto Module](https://nodejs.org/api/crypto.html)
  * [ZLib Module](https://nodejs.org/api/zlib.html)
  * [Net Module](https://nodejs.org/api/net.html)

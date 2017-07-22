@@ -11,6 +11,7 @@
 //
 
 const fs = require('fs');
+const path = require('path');
 const net = require('net');
 const zlib = require('zlib');
 const crypto = require('crypto');
@@ -530,7 +531,7 @@ loadConfiguration = function(jsonFilename) {
         console.log('Please select JSON filename that contains configurations');
         return false;
     }
-    Params.options = JSON.parse(fs.readFileSync(jsonFilename, 'utf8'));
+    Params.options = JSON.parse(fs.readFileSync(path.resolve(jsonFilename), 'utf8'));
     Utils.log('Configuration loaded');
     return true;
 }
@@ -556,10 +557,10 @@ connect = function(options) {
           Params.options.connect_port = parseInt(parts[1]);
         }
         if (typeof Params.options.client_private_key !== 'undefined') {
-          Params.options.client_private_key_contents = fs.readFileSync(Params.options.client_private_key).toString();
+          Params.options.client_private_key_contents = fs.readFileSync(path.resolve(Params.options.client_private_key)).toString();
         }
         if (typeof Params.options.server_public_key !== 'undefined') {
-          Params.options.server_public_key_contents = fs.readFileSync(Params.options.server_public_key).toString();
+          Params.options.server_public_key_contents = fs.readFileSync(path.resolve(Params.options.server_public_key)).toString();
         }
         Utils.log('Connecting to the Residue server...');
         if (typeof Params.options.client_id === 'undefined'

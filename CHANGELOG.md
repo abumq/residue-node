@@ -4,6 +4,7 @@
 ### Fixed
 - Fixed log for generating key size
 - Fixed issues with getting correct filename, line number and function name
+- Use `path` module to resolve relative file paths
 
 ### Added
 - Added `loadConfiguration` to load configurations from json file
