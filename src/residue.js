@@ -217,6 +217,11 @@ const Utils = {
         return null;
     },
     
+    extractPublicKey: function(privateKey) {
+        const key = new NodeRSA(privateKey.key);
+        return key.exportKey('public');
+    },
+    
     generateKeypair: function(keySize) {
         const key = new NodeRSA({b: keySize});
         key.setOptions({encryptionScheme: 'pkcs1'});
@@ -568,8 +573,7 @@ connect = function(options) {
           Params.options.connect_port = parseInt(parts[1]);
         }
         if (typeof Params.options.client_id === 'undefined' &&
-                typeof Params.options.client_private_key === 'undefined' &&
-                typeof Params.options.client_public_key === 'undefined') {
+                typeof Params.options.client_private_key === 'undefined') {
             // Generate new key for key-exchange
             const keySize = Params.options.rsa_key_size || 2048;
             Utils.log('Generating ' + keySize + '-bit key...');
@@ -595,10 +599,18 @@ connect = function(options) {
                     padding: crypto.constants.RSA_PKCS1_PADDING,
                 },
                 publicKey: {
-                    key: fs.readFileSync(path.resolve(Params.options.client_public_key)).toString(),
                     padding: crypto.constants.RSA_PKCS1_PADDING,
-                },
+                }
             };
+            if (typeof Params.options.client_public_key !== 'undefined') {
+                Params.rsa_key.publicKey.key = fs.readFileSync(path.resolve(Params.options.client_public_key)).toString();
+            } else {
+                if (Params.rsa_key.privateKey.passphrase === null) {
+                    Params.rsa_key.publicKey.key = Utils.extractPublicKey(Params.rsa_key.privateKey);
+                } else {
+                    throw 'ERROR: You specified client_key_secret and did not provide client_public_key. We cannot extract public-key for encrypted private keys. Please provide public key manually';
+                }
+            }
             Utils.log('Known client...');
         }
         if (typeof Params.options.server_public_key !== 'undefined') {
