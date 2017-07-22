@@ -6,7 +6,7 @@
 var express = require('express');
 
 var residue = require('residue');
-var logger = residue.getLogger('sample-app');
+var logger = residue.getLogger('default');
 
 var app = express();
 
@@ -50,7 +50,8 @@ app.listen(3009, function () {
 
     // Either you can use residueParams or loadConfiguration form file
     // for this sample we use loadConfiguration
-    if (residue.loadConfiguration('client.conf.json')) {
+	const confFile = 'client.conf.json';
+    if (residue.loadConfiguration(confFile)) {
         residue.connect(/*residueParams*/);
     }
 });

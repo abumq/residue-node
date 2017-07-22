@@ -26,8 +26,11 @@ const Params = {
     //   client_id, age, date_created, key, logging_port, token_port
     connection: null,
 
-    // rsa_key is NodeRSA object
+    // rsa_key is keypair object
     rsa_key: null,
+
+    // server_rsa_key is keypair object
+    server_rsa_key: null,
 
     // whether connected to the server or not
     connected: false,
@@ -213,11 +216,30 @@ const Utils = {
 
         return null;
     },
+    
+    generateKeypair: function(keySize) {
+        const key = new NodeRSA({b: keySize});
+        key.setOptions({encryptionScheme: 'pkcs1'});
+
+        Utils.debugLog('Key generated');
+        Utils.debugLog('Exporting private...');
+        const privatePEM = '-----BEGIN RSA PRIVATE KEY-----\n' +
+            Utils.base64Encode(key.exportKey('private')) +
+            '\n-----END RSA PRIVATE KEY-----';
+        Utils.debugLog('Exporting public...');
+        const publicPEM = '-----BEGIN PUBLIC KEY-----\n' +
+            Utils.base64Encode(key.exportKey('public')) +
+		'\n-----END PUBLIC KEY-----';
+        return {
+            privatePEM: privatePEM,
+            publicPEM: publicPEM,
+        };
+    },
 
     // Decrypt response from the server using asymetric key
-    decryptRSA: function(response) {
+    decryptRSA: function(response, privateKey) {
         try {
-            return Params.rsa_key.decrypt(new Buffer(response.toString(), 'base64'), 'utf-8');
+            return crypto.privateDecrypt(privateKey, new Buffer(response.toString(), 'base64')).toString('utf-8');
         } catch (err) {
             Utils.debugLog(err);
         }
@@ -225,9 +247,9 @@ const Utils = {
     },
 
     // Encrypts string using key
-    encryptRSA: function(str, key) {
+    encryptRSA: function(str, publicKey) {
         try {
-            return key.encrypt(new Buffer(str, 'utf-8'), 'base64');
+            return crypto.publicEncrypt(publicKey, new Buffer(str, 'utf-8')).toString('base64');
         } catch (err) {
             Utils.debugLog(err);
         }
@@ -239,7 +261,7 @@ const Utils = {
 Params.connection_socket.on('data', function(data) {
     let decryptedData = Utils.decrypt(data);
     if (decryptedData === null) {
-        decryptedData = Utils.decryptRSA(data);
+        decryptedData = Utils.decryptRSA(data, Params.rsa_key.privateKey);
     }
     if (decryptedData === null) {
         Utils.log('Unable to read response: ' + data);
@@ -499,7 +521,6 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
 
     Utils.debugLog("Sending log request...");
 
-
     let datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
     if (Params.options.time_offset) {
         datetime += (1000 * Params.options.time_offset); // offset is in seconds
@@ -513,7 +534,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         line: sourceLine,
         func: sourceFunc,
         app: Params.options.application_id,
-        level: level
+        level: level,
     };
     if (typeof verboseLevel !== 'undefined') {
         request.vlevel = verboseLevel;
@@ -521,7 +542,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     Utils.sendRequest(request, Params.logging_socket, false, Params.options.plain_request && Utils.hasFlag(Flag.ALLOW_PLAIN_LOG_REQUEST), Utils.hasFlag(Flag.COMPRESSION));
 }
 
-function isNormalInteger(str) {
+isNormalInteger = function(str) {
     var n = Math.floor(Number(str));
     return String(n) === str && n >= 0;
 }
@@ -535,7 +556,6 @@ loadConfiguration = function(jsonFilename) {
     Utils.log('Configuration loaded');
     return true;
 }
-
 
 // Securily connect to residue server using defined options
 connect = function(options) {
@@ -556,46 +576,62 @@ connect = function(options) {
           Params.options.host = parts[0];
           Params.options.connect_port = parseInt(parts[1]);
         }
-        if (typeof Params.options.client_private_key !== 'undefined') {
-          Params.options.client_private_key_contents = fs.readFileSync(path.resolve(Params.options.client_private_key)).toString();
-        }
-        if (typeof Params.options.server_public_key !== 'undefined') {
-          Params.options.server_public_key_contents = fs.readFileSync(path.resolve(Params.options.server_public_key)).toString();
-        }
-        Utils.log('Connecting to the Residue server...');
-        if (typeof Params.options.client_id === 'undefined'
-                && typeof Params.options.client_private_key_contents === 'undefined') {
+        if (typeof Params.options.client_id === 'undefined' &&
+                typeof Params.options.client_private_key === 'undefined' &&
+                typeof Params.options.client_public_key === 'undefined') {
+            // Generate new key for key-exchange
             const keySize = Params.options.rsa_key_size || 2048;
-            Utils.log('Generating ' + keySize + '-bit RSA key...');
-            Params.rsa_key = new NodeRSA({b: keySize});
-            Params.rsa_key.setOptions({encryptionScheme: 'pkcs1'});
+            Utils.log('Generating ' + keySize + '-bit key...');
+            const generatedKey = Utils.generateKeypair(keySize);
+            Params.rsa_key = {
+                isGenerated: true,
+                privateKey: {
+                    key: generatedKey.privatePEM,
+                    padding: crypto.constants.RSA_PKCS1_PADDING,
+                },
+                publicKey: {
+                    key: generatedKey.publicPEM,
+                    padding: crypto.constants.RSA_PKCS1_PADDING,
+                }
+            };
             Utils.log('Key generated');
         } else {
+            Params.rsa_key = {
+                generated: false,
+                privateKey: {
+                    key: fs.readFileSync(path.resolve(Params.options.client_private_key)).toString(),
+                    passphrase: Params.options.client_key_secret || null,
+                    padding: crypto.constants.RSA_PKCS1_PADDING,
+                },
+                publicKey: {
+                    key: fs.readFileSync(path.resolve(Params.options.client_public_key)).toString(),
+                    padding: crypto.constants.RSA_PKCS1_PADDING,
+                },
+            };
             Utils.log('Known client...');
-            Params.rsa_key = new NodeRSA(Params.options.client_private_key_contents);
-            Params.rsa_key.setOptions({encryptionScheme: 'pkcs1'});
         }
+        if (typeof Params.options.server_public_key !== 'undefined') {
+            Params.server_rsa_key = {
+                publicKey: {
+                    key: fs.readFileSync(path.resolve(Params.options.server_public_key)).toString(),
+                    padding: crypto.constants.RSA_PKCS1_PADDING,
+                },
+            };
+        }
+        Utils.log('Connecting to the Residue server...');
         client.connect(Params.options.connect_port, Params.options.host, function() {
-            let request;
-            if (typeof Params.options.client_id !== 'undefined'
-                    && typeof Params.options.client_private_key_contents !== 'undefined') {
-                request = {
-                    _t: Utils.getTimestamp(),
-                    type: ConnectType.Connect,
-                    client_id: Params.options.client_id
-                };
+            let request = {
+                _t: Utils.getTimestamp(),
+                type: ConnectType.Connect,
+            };
+            if (Params.rsa_key.isGenerated) {
+                request.rsa_public_key = Utils.base64Encode(Params.rsa_key.publicKey.key);
             } else {
-                request = {
-                    _t: Utils.getTimestamp(),
-                    type: ConnectType.Connect,
-                    rsa_public_key: Utils.base64Encode(Params.rsa_key.exportKey('public'))
-                };
+                request.client_id = Params.options.client_id;
             }
             let r = JSON.stringify(request);
-            if (typeof Params.options.server_public_key_contents !== 'undefined') {
-                const publicKeyObj = new NodeRSA(Params.options.server_public_key_contents);
-                publicKeyObj.setOptions({encryptionScheme: 'pkcs1'});
-                r = Utils.encryptRSA(r, publicKeyObj);
+            if (Params.server_rsa_key !== null) {
+                r = Utils.encryptRSA(r, Params.server_rsa_key.publicKey);
             }
             const fullReq = r + PACKET_DELIMITER;
             client.write(fullReq);

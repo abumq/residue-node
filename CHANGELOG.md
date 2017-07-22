@@ -4,6 +4,10 @@
 ### Fixed
 - Use `path` module to resolve relative file paths
 
+### Updates
+- Use `crypto` module for RSA operations
+- Ability to use encrypted private key
+
 ## [1.0.0-beta.7]
 ### Fixed
 - Fixed log for generating key size
