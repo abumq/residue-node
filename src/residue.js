@@ -452,10 +452,10 @@ getCurrentTimeUTC = function() {
 }
 
 // Send log request to the server. No response is expected
-sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, verboseLevel) {
+sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel) {
     if (Params.connecting) {
        Params.logging_socket_callbacks.push(function() {
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, verboseLevel);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
        });
        return;
     }
@@ -470,7 +470,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
     if (!isClientValid()) {
         Utils.debugLog("Resetting connection...");
         Params.logging_socket_callbacks.push(function() {
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, verboseLevel);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
         Params.connection_socket.destroy();
         disconnect();
@@ -481,7 +481,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
     if (shouldSendPing(60)) {
         Utils.debugLog("Pinging first...");
         Params.logging_socket_callbacks.push(function() {
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, verboseLevel);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
         sendPing();
         return;
@@ -490,7 +490,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
     if (!hasValidToken(loggerId)) {
         Utils.debugLog("Obtaining token first...");
         Params.token_socket_callbacks.push(function() {
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, verboseLevel);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
         obtainToken(loggerId);
         return;
@@ -510,6 +510,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
         msg: logMessage,
         file: sourceFile,
         line: sourceLine,
+        func: sourceFunc,
         app: Params.options.application_id,
         level: level
     };
@@ -522,6 +523,16 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, v
 function isNormalInteger(str) {
     var n = Math.floor(Number(str));
     return String(n) === str && n >= 0;
+}
+
+loadConfiguration = function(jsonFilename) {
+    if (typeof jsonFilename === 'undefined') {
+        console.log('Please select JSON filename that contains configurations');
+        return false;
+    }
+    Params.options = JSON.parse(fs.readFileSync(jsonFilename, 'utf8'));
+    Utils.log('Configuration loaded');
+    return true;
 }
 
 
@@ -615,20 +626,30 @@ disconnect = function() {
 }
 
 // Get location of callstack in <file>:<line> format
-getSourceLocation = function() {
-    return (new Error).stack.split('\n')[4].replace(' at ', '').trim().split(':');
+getSourceLocation = function(splitChar) {
+    return (new Error).stack.split('\n')[4].replace(' at ', '').trim().split(splitChar);
 }
 
 // Get file of callstack.
 // See getSourceLocation
 getSourceFile = function() {
-    return getSourceLocation()[0];
+    return getSourceLocation(':')[0];
 }
 
 // Get line of callstack.
 // See getSourceLocation
 getSourceLine = function() {
-    return parseInt(getSourceLocation()[1]);
+    return parseInt(getSourceLocation(':')[1]);
+}
+
+// Get func of call stack
+// See getSourceLocation
+getSourceFunc = function() {
+    const parts = getSourceLocation(' ');
+    if (parts.length <= 1) {
+        return 'anonymous';
+    }
+    return parts[0];
 }
 
 // Logger interface for user to send log messages to server
@@ -636,31 +657,31 @@ Logger = function(id) {
     this.id = id;
 
     this.info = function(message) {
-        sendLogRequest(message, LoggingLevels.Info, this.id, getSourceFile(), getSourceLine());
+        sendLogRequest(message, LoggingLevels.Info, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
     }
 
     this.error = function(message) {
-        sendLogRequest(message, LoggingLevels.Error, this.id, getSourceFile(), getSourceLine());
+        sendLogRequest(message, LoggingLevels.Error, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
     }
 
     this.debug = function(message) {
-        sendLogRequest(message, LoggingLevels.Debug, this.id, getSourceFile(), getSourceLine());
+        sendLogRequest(message, LoggingLevels.Debug, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
     }
 
     this.warn = function(message) {
-        sendLogRequest(message, LoggingLevels.Warn, this.id, getSourceFile(), getSourceLine());
+        sendLogRequest(message, LoggingLevels.Warn, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
     }
 
     this.trace = function(message) {
-        sendLogRequest(message, LoggingLevels.Trace, this.id, getSourceFile(), getSourceLine());
+        sendLogRequest(message, LoggingLevels.Trace, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
     }
 
     this.fatal = function(message) {
-        sendLogRequest(message, LoggingLevels.Fatal, this.id, getSourceFile(), getSourceLine());
+        sendLogRequest(message, LoggingLevels.Fatal, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
     }
 
     this.verbose = function(message, level) {
-        sendLogRequest(message, LoggingLevels.Verbose, this.id, getSourceFile(), getSourceLine(), level);
+        sendLogRequest(message, LoggingLevels.Verbose, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), level);
     }
 }
 
@@ -670,6 +691,7 @@ getLogger = function(id) {
     return new Logger(id);
 }
 
+exports.loadConfiguration = loadConfiguration;
 exports.connect = connect;
 exports.disconnect = disconnect;
 exports.getLogger = getLogger;
