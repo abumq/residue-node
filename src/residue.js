@@ -220,19 +220,10 @@ const Utils = {
     generateKeypair: function(keySize) {
         const key = new NodeRSA({b: keySize});
         key.setOptions({encryptionScheme: 'pkcs1'});
-
         Utils.debugLog('Key generated');
-        Utils.debugLog('Exporting private...');
-        const privatePEM = '-----BEGIN RSA PRIVATE KEY-----\n' +
-            Utils.base64Encode(key.exportKey('private')) +
-            '\n-----END RSA PRIVATE KEY-----';
-        Utils.debugLog('Exporting public...');
-        const publicPEM = '-----BEGIN PUBLIC KEY-----\n' +
-            Utils.base64Encode(key.exportKey('public')) +
-		'\n-----END PUBLIC KEY-----';
         return {
-            privatePEM: privatePEM,
-            publicPEM: publicPEM,
+            privatePEM: key.exportKey('private'),
+            publicPEM: key.exportKey('public'),
         };
     },
 
@@ -241,7 +232,7 @@ const Utils = {
         try {
             return crypto.privateDecrypt(privateKey, new Buffer(response.toString(), 'base64')).toString('utf-8');
         } catch (err) {
-            Utils.debugLog(err);
+            Utils.log(err);
         }
         return null;
     },
@@ -251,7 +242,7 @@ const Utils = {
         try {
             return crypto.publicEncrypt(publicKey, new Buffer(str, 'utf-8')).toString('base64');
         } catch (err) {
-            Utils.debugLog(err);
+            Utils.log(err);
         }
         return null;
     }
