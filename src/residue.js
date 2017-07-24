@@ -164,13 +164,7 @@ const Utils = {
         }
         let encryptedRequest;
         if (!sendPlain) {
-            try {
-                let iv = new Buffer(crypto.randomBytes(16), 'hex');
-                let cipher = crypto.createCipheriv('aes-256-cbc', new Buffer(Params.connection.key, 'hex'), iv);
-                encryptedRequest = iv.toString('hex') + ':' + Params.connection.client_id + ':' + cipher.update(finalRequest, 'utf-8', 'base64') + cipher.final('base64') + PACKET_DELIMITER;
-            } catch (err) {
-                Utils.debugLog(err);
-            }
+            encryptedRequest = Utils.encrypt(finalRequest);
         } else {
             encryptedRequest = finalRequest + PACKET_DELIMITER;
         }
@@ -193,6 +187,22 @@ const Utils = {
         }
     },
 
+    getCipherAlgorithm: function(keyHex) {
+      return `aes-${(keyHex.length / 2) * 8}-cbc`;
+    },
+
+    encrypt: function(request) {
+      let encryptedRequest;
+      try {
+          let iv = new Buffer(crypto.randomBytes(16), 'hex');
+          let cipher = crypto.createCipheriv(Utils.getCipherAlgorithm(Params.connection.key), new Buffer(Params.connection.key, 'hex'), iv);
+          return iv.toString('hex') + ':' + Params.connection.client_id + ':' + cipher.update(request, 'utf-8', 'base64') + cipher.final('base64') + PACKET_DELIMITER;
+      } catch (err) {
+          Utils.debugLog(err);
+      }
+      return '';
+    },
+
     // Decrypt response from the server using symmetric key
     decrypt: function(response) {
         if (Params.connection === null) {
@@ -203,7 +213,7 @@ const Utils = {
             const iv = resp[0];
             const clientId = resp.length === 3 ? resp[1] : '';
             const base64Data = new Buffer(resp.length === 3 ? resp[2] : resp[1], 'base64');
-            let decipher = crypto.createDecipheriv('aes-256-cbc', new Buffer(Params.connection.key, 'hex'), new Buffer(iv, 'hex'));
+            let decipher = crypto.createDecipheriv(Utils.getCipherAlgorithm(Params.connection.key), new Buffer(Params.connection.key, 'hex'), new Buffer(iv, 'hex'));
             decipher.setAutoPadding(false);
 
             let plain = decipher.update(base64Data, 'base64', 'utf-8');

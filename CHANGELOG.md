@@ -4,6 +4,7 @@
 ### Fixed
 - Fixed issue with token retrieving when client is dead
 - Fixed issue with pinging client when client_age < 60
+- Fixed issue with key when client created using different key size
 
 ## [1.0.0-beta.9]
 ### Fixed
