@@ -91,7 +91,7 @@ const Flag = {
 };
 
 const PACKET_DELIMITER = '\r\n\r\n';
-const PING_THRESHOLD = 15; /* minimim client_age */
+const PING_THRESHOLD = 15; // minimim client_age
 
 // Utility static functions
 const Utils = {
