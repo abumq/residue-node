@@ -1,5 +1,10 @@
 # Change Log
 
+## [Unreleased]
+### Fixed
+- Fixed issue with token retrieving when client is dead
+- Fixed issue with pinging client when client_age < 60
+
 ## [1.0.0-beta.9]
 ### Fixed
 - Use `path` module to resolve relative file paths

@@ -50,8 +50,8 @@ const Params = {
     logging_socket: new net.Socket(),
 
     // Debug logging
-    debugging: false,
-    verboseLevel: 9,
+    debugging: true,
+    verboseLevel: 8,
 
     // Status for sockets
     token_socket_connected: false,
@@ -91,6 +91,7 @@ const Flag = {
 };
 
 const PACKET_DELIMITER = '\r\n\r\n';
+const PING_THRESHOLD = 15; /* minimim client_age */
 
 // Utility static functions
 const Utils = {
@@ -130,7 +131,7 @@ const Utils = {
     now: function() {
         return parseInt((new Date()).getTime() / 1000, 10);
     },
-    
+
     getTimestamp: function() {
         return Utils.now();
     },
@@ -216,12 +217,12 @@ const Utils = {
 
         return null;
     },
-    
+
     extractPublicKey: function(privateKey) {
         const key = new NodeRSA(privateKey.key);
         return key.exportKey('public');
     },
-    
+
     generateKeypair: function(keySize) {
         const key = new NodeRSA({b: keySize});
         key.setOptions({encryptionScheme: 'pkcs1'});
@@ -414,10 +415,7 @@ obtainToken = function(loggerId, accessCode) {
     Utils.sendRequest(request, Params.token_socket);
 }
 
-shouldSendPing = function(threshold/* = 60 */) {
-    if (typeof threshold === 'undefined') {
-        threshold = 60;
-    }
+shouldSendPing = function() {
     if (!Params.connected || Params.connecting) {
         // Can't send ping
         return false;
@@ -426,7 +424,7 @@ shouldSendPing = function(threshold/* = 60 */) {
         // Always alive!
         return false;
     }
-    return Params.connection.age - (Utils.now() - Params.connection.date_created) <= threshold;
+    return Params.connection.age - (Utils.now() - Params.connection.date_created) <= PING_THRESHOLD;
 }
 
 sendPing = function() {
@@ -497,7 +495,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         return;
     }
 
-    if (shouldSendPing(60)) {
+    if (shouldSendPing()) {
         Utils.debugLog('Pinging first...');
         Params.logging_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
@@ -653,6 +651,7 @@ disconnect = function() {
             Utils.log('Disconnecting gracefully...');
             Params.token_socket.end();
             Params.logging_socket.end();
+            Params.tokens = [];
             Params.connected = false;
             Params.connection = null;
             Params.token_socket_connected = false;
