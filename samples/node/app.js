@@ -7,6 +7,7 @@ var express = require('express');
 
 var residue = require('residue');
 var logger = residue.getLogger('sample-app');
+var defaultLogger = residue.getLogger('default');
 
 var app = express();
 
@@ -39,8 +40,11 @@ function namedFunc() {
 }
 
 app.get('/', function (req, res) {
+	console.log('using sample-app logger...');
     logger.info('Another log');
-    logger.debug('Info Hello World!');
+    //logger.debug('Info Hello World!');
+	console.log('using default logger...');
+	defaultLogger.info('using default logger');
     namedFunc();
     res.send('Hello World!');
 });

@@ -38,9 +38,6 @@ const Params = {
     // whether connection is being made (enabled at connection_socket, disabled at logging_socket)
     connecting: false,
 
-    // lock for mutex
-    lock: false,
-
     // list of tokens currently available
     tokens: [],
 
@@ -61,7 +58,14 @@ const Params = {
     send_request_backlog_callbacks: [],
     logging_socket_callbacks: [],
     token_socket_callbacks: [],
+	
+	// locks for mutex
+	locks: {},
 };
+
+Params.locks[Params.connection_socket.address().port] = false;
+Params.locks[Params.token_socket.address().port] = false;
+Params.locks[Params.logging_socket.address().port] = false;
 
 // Various connection types accepted by the server
 const ConnectType = {
@@ -84,13 +88,14 @@ const LoggingLevels = {
 const Flag = {
   NONE: 0,
   ALLOW_UNKNOWN_LOGGERS: 1,
-  AUTHORIZE_LOGGERS_WITH_NO_ACCESS_CODE: 4,
+  ALLOW_DEFAULT_ACCESS_CODE: 4,
   ALLOW_PLAIN_LOG_REQUEST: 8,
   ALLOW_BULK_LOG_REQUEST: 16,
   COMPRESSION: 256
 };
 
 const PACKET_DELIMITER = '\r\n\r\n';
+const DEFAULT_ACCESS_CODE = 'default';
 const PING_THRESHOLD = 15; // minimim client_age
 
 // Utility static functions
@@ -149,7 +154,7 @@ const Utils = {
         if (typeof compress === 'undefined') {
             compress = false;
         }
-        if (!nolock && Params.lock) {
+        if (!nolock && Params.locks[socket.address().port]) {
             Params.send_request_backlog_callbacks.push(function() {
                 Utils.sendRequest(request, socket, false, sendPlain, compress);
             });
@@ -169,11 +174,11 @@ const Utils = {
             encryptedRequest = finalRequest + PACKET_DELIMITER;
         }
         Utils.vLog(9, 'Payload (Plain): ' + finalRequest);
-        Params.lock = true;
+		Params.locks[socket.address().port] = true;
         try {
             Utils.debugLog('Sending...');
             socket.write(encryptedRequest, 'utf-8', function() {
-                Params.lock = false;
+				Params.locks[socket.address().port] = false;
                 setTimeout(function() {
                     if (Params.send_request_backlog_callbacks.length > 0) {
                         const cb = Params.send_request_backlog_callbacks.splice(0, 1)[0];
@@ -380,11 +385,12 @@ obtainToken = function(loggerId, accessCode) {
         Utils.log('Not connected to the server yet');
         return;
     }
-    if (Params.lock) {
+    if (Params.locks[Params.token_socket.address().port]) {
         Utils.debugLog('Already locked');
-        return;
+        return; // don't need this!?
     }
-    if (typeof accessCode === 'undefined') {
+    Utils.debugLog('obtainToken(' + loggerId + ', ' + accessCode + ')');
+    if (accessCode === null) {
         // Get from map (recursive)
         if (typeof Params.options.access_codes !== 'undefined') {
             let found = false;
@@ -397,19 +403,19 @@ obtainToken = function(loggerId, accessCode) {
                 }
             });
             if (!found) {
-                if (Utils.hasFlag(Flag.AUTHORIZE_LOGGERS_WITH_NO_ACCESS_CODE)) {
+                if (Utils.hasFlag(Flag.ALLOW_DEFAULT_ACCESS_CODE)) {
                     Utils.debugLog('Trying to get token with no access code');
                     // try without access code
-                    obtainToken(loggerId, '');
+                    obtainToken(loggerId, DEFAULT_ACCESS_CODE);
                 } else {
                     Utils.log('ERROR: Access code for logger [' + loggerId + '] not provided. Loggers without access code are not allowed by the server.');
                     return;
                 }
             }
         } else {
-            if (Utils.hasFlag(Flag.AUTHORIZE_LOGGERS_WITH_NO_ACCESS_CODE)) {
-                Utils.debugLog('Trying to get token with no access code');
-                accessCode = '';
+            if (Utils.hasFlag(Flag.ALLOW_DEFAULT_ACCESS_CODE)) {
+                Utils.debugLog('Trying to get token with default access code');
+                accessCode = DEFAULT_ACCESS_CODE;
             } else {
                 Utils.log('ERROR: Loggers without access code are not allowed by the server');
                 return;
@@ -417,6 +423,10 @@ obtainToken = function(loggerId, accessCode) {
         }
     }
     Utils.debugLog('Obtaining token for [' + loggerId + '] with access code [' + accessCode + ']');
+	if (accessCode === null) {
+		// last hope!
+		accessCode = DEFAULT_ACCESS_CODE;
+	}
     const request = {
         _t: Utils.getTimestamp(),
         logger_id: loggerId,
@@ -515,15 +525,15 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     }
 
     if (!hasValidToken(loggerId)) {
-        Utils.debugLog('Obtaining token first...');
+        Utils.debugLog('Obtaining token first... [' + loggerId + ']');
         Params.token_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
-        obtainToken(loggerId);
+        obtainToken(loggerId, null /* means resolve in function */);
         return;
     }
 
-    Utils.debugLog('Sending log request...');
+    Utils.debugLog('Sending log request [' + loggerId  + ']...');
 
     let datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
     if (Params.options.time_offset) {
