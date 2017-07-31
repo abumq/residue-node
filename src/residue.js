@@ -67,6 +67,7 @@ Params.locks[Params.connection_socket.address().port] = false;
 Params.locks[Params.token_socket.address().port] = false;
 Params.locks[Params.logging_socket.address().port] = false;
 
+
 // Various connection types accepted by the server
 const ConnectType = {
     Connect: 1,
@@ -156,6 +157,7 @@ const Utils = {
         }
         if (!nolock && Params.locks[socket.address().port]) {
             Params.send_request_backlog_callbacks.push(function() {
+				Utils.debugLog('Sending request via callback');
                 Utils.sendRequest(request, socket, false, sendPlain, compress);
             });
             return;
@@ -174,11 +176,13 @@ const Utils = {
             encryptedRequest = finalRequest + PACKET_DELIMITER;
         }
         Utils.vLog(9, 'Payload (Plain): ' + finalRequest);
+        Utils.vLog(8, 'Locking ' + socket.address().port);
 		Params.locks[socket.address().port] = true;
         try {
             Utils.debugLog('Sending...');
             socket.write(encryptedRequest, 'utf-8', function() {
-				Params.locks[socket.address().port] = false;
+                Params.locks[socket.address().port] = false;
+                Utils.vLog(8, 'Unlocking ' + socket.address().port);
                 setTimeout(function() {
                     if (Params.send_request_backlog_callbacks.length > 0) {
                         const cb = Params.send_request_backlog_callbacks.splice(0, 1)[0];
@@ -187,6 +191,8 @@ const Utils = {
                 }, 10);
             });
         } catch (e) {
+            Utils.vLog(8, 'Unlocking ' + socket.address().port);
+            Params.locks[socket.address().port] = false;
             Utils.debugLog('Error while writing to socket...');
             Utils.debugLog(e);
         }
@@ -296,10 +302,12 @@ Params.connection_socket.on('data', function(data) {
         Utils.debugLog('Connecting to Residue Server...(step 3)');
         Params.connection = dataJson;
         Params.connected = true;
+        Utils.vLog(8, `Connection socket: ${Params.connection_socket.address().port}`);
         if (typeof Params.options.access_codes === 'object') {
             if (!Params.token_socket_connected) {
                 Params.token_socket.connect(Params.connection.token_port, Params.options.host, function() {
                     Params.token_socket_connected = true;
+                    Utils.vLog(8, `Token socket: ${Params.token_socket.address().port}`);
                     Utils.debugLog('Obtaining tokens...');
                     Params.options.access_codes.forEach(function(item) {
                         obtainToken(item.logger_id, item.code);
@@ -313,6 +321,7 @@ Params.connection_socket.on('data', function(data) {
             Params.logging_socket.connect(Params.connection.logging_port, Params.options.host, function() {
                 Utils.log('Connected to Residue!');
                 Params.logging_socket_connected = true;
+                Utils.vLog(8, `Logging socket: ${Params.logging_socket.address().port}`);
                 Params.connecting = false;
 
                 while (Params.logging_socket_callbacks.length > 0) {
@@ -356,6 +365,9 @@ Params.token_socket.on('data', function(data) {
     if (dataJson.status === 0) {
         dataJson.dateCreated = Utils.now();
         Params.tokens[dataJson.loggerId] = dataJson;
+		Utils.debugLog('New token: ');
+		Utils.debugLog(dataJson);
+		Utils.debugLog('Token callbacks: ' + Params.token_socket_callbacks.length);
         while (Params.token_socket_callbacks.length > 0) {
             const cb = Params.token_socket_callbacks.splice(0, 1)[0];
             cb();
@@ -404,7 +416,7 @@ obtainToken = function(loggerId, accessCode) {
             });
             if (!found) {
                 if (Utils.hasFlag(Flag.ALLOW_DEFAULT_ACCESS_CODE)) {
-                    Utils.debugLog('Trying to get token with no access code');
+                    Utils.debugLog('Trying to get token with default access code');
                     // try without access code
                     obtainToken(loggerId, DEFAULT_ACCESS_CODE);
                 } else {
@@ -422,11 +434,12 @@ obtainToken = function(loggerId, accessCode) {
             }
         }
     }
-    Utils.debugLog('Obtaining token for [' + loggerId + '] with access code [' + accessCode + ']');
 	if (accessCode === null) {
 		// last hope!
+		Utils.debugLog('Forcing default access code');
 		accessCode = DEFAULT_ACCESS_CODE;
 	}
+    Utils.debugLog('Obtaining token for [' + loggerId + '] with access code [' + accessCode + ']');
     const request = {
         _t: Utils.getTimestamp(),
         logger_id: loggerId,
@@ -489,7 +502,7 @@ getCurrentTimeUTC = function() {
 }
 
 // Send log request to the server. No response is expected
-sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel) {
+sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, callbackDepth) {
     if (Params.connecting) {
        Params.logging_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
@@ -501,13 +514,22 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.log('Not connected to the server yet');
         return;
     }
+	
+	if (typeof callbackDepth === 'undefined') {
+		callbackDepth = 1;
+	}
+	
+	if (callbackDepth > 2) {
+        Utils.log('Ignoring log request from callback #' + callbackDepth);
+		return;
+	}
 
     Utils.debugLog('Checking health...');
 
     if (!isClientValid()) {
         Utils.debugLog('Resetting connection...');
         Params.logging_socket_callbacks.push(function() {
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, ++callbackDepth);
         });
         Params.connection_socket.destroy();
         disconnect();
@@ -518,7 +540,8 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     if (shouldSendPing()) {
         Utils.debugLog('Pinging first...');
         Params.logging_socket_callbacks.push(function() {
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
+			Utils.debugLog('Sending log from ping callback...');
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, ++callbackDepth);
         });
         sendPing();
         return;
@@ -527,7 +550,8 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     if (!hasValidToken(loggerId)) {
         Utils.debugLog('Obtaining token first... [' + loggerId + ']');
         Params.token_socket_callbacks.push(function() {
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
+			Utils.debugLog('Sending log from token callback...');
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, ++callbackDepth);
         });
         obtainToken(loggerId, null /* means resolve in function */);
         return;
