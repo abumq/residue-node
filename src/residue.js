@@ -434,7 +434,7 @@ shouldSendPing = function() {
         // Always alive!
         return false;
     }
-    return Params.connection.age - (Utils.now() - Params.connection.date_created) <= PING_THRESHOLD;
+    return Params.connection.age - (Utils.now() - Params.connection.date_created) < PING_THRESHOLD;
 }
 
 sendPing = function() {
