@@ -47,7 +47,7 @@ const Params = {
     logging_socket: new net.Socket(),
 
     // Debug logging
-    debugging: true,
+    debugging: false,
     verboseLevel: 8,
 
     // Status for sockets
