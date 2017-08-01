@@ -217,21 +217,21 @@ const Utils = {
     },
 
     // Decrypt response from the server using symmetric key
-    decrypt: function(response) {
+    decrypt: function(data) {
         if (Params.connection === null) {
             return null;
         }
         try {
-            const resp = response.toString().split(':');
+            const resp = data.split(':');
             const iv = resp[0];
             const clientId = resp.length === 3 ? resp[1] : '';
-            const data = resp.length === 3 ? resp[2] : resp[1];
-            const base64Data = new Buffer(data, 'base64');
-            Utils.vLog(8, 'Reading ' + response.toString().trim() + ' parts: ' + iv + ' >>> ' + data.trim() + ' >>> ' + Params.connection.key);
+            const actualData = resp.length === 3 ? resp[2] : resp[1];
+            const binaryData = new Buffer(actualData, 'base64');
+            Utils.vLog(8, 'Reading ' + data.trim() + ' >>> parts: ' + iv + ' >>> ' + actualData.trim() + ' >>> ' + Params.connection.key);
             let decipher = crypto.createDecipheriv(Utils.getCipherAlgorithm(Params.connection.key), new Buffer(Params.connection.key, 'hex'), new Buffer(iv, 'hex'));
             decipher.setAutoPadding(false);
 
-            let plain = decipher.update(base64Data, 'base64', 'utf-8');
+            let plain = decipher.update(binaryData, 'base64', 'utf-8');
             plain += decipher.final('utf-8');
             // Remove non-ascii characters from decrypted text ! Argggh!
             plain = plain.replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '');
@@ -281,7 +281,7 @@ const Utils = {
 
 // Handle response from the server on connection requests
 Params.connection_socket.on('data', function(data) {
-    let decryptedData = Utils.decrypt(data);
+    let decryptedData = Utils.decrypt(data.toString());
     if (decryptedData === null) {
         decryptedData = Utils.decryptRSA(data, Params.rsa_key.privateKey);
     }
@@ -359,7 +359,7 @@ Params.connection_socket.on('error', function(error) {
 
 // Handle response for tokens, this stores tokens in to Params.tokens
 Params.token_socket.on('data', function(data) {
-    let decryptedData = Utils.decrypt(data);
+    let decryptedData = Utils.decrypt(data.toString());
     if (decryptedData === null) {
         Utils.log('Unable to read response: ' + data);
         return;
