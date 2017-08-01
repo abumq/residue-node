@@ -47,7 +47,7 @@ const Params = {
     logging_socket: new net.Socket(),
 
     // Debug logging
-    debugging: false,
+    debugging: true,
     verboseLevel: 8,
 
     // Status for sockets
@@ -61,6 +61,8 @@ const Params = {
 	
 	// locks for mutex
 	locks: {},
+	
+	token_request_queue: [],
 };
 
 Params.locks[Params.connection_socket.address().port] = false;
@@ -191,7 +193,7 @@ const Utils = {
                 }, 10);
             });
         } catch (e) {
-            Utils.vLog(8, 'Unlocking ' + socket.address().port);
+            Utils.vLog(8, 'Unlocking ' + socket.address().port + ' [because of exception]');
             Params.locks[socket.address().port] = false;
             Utils.debugLog('Error while writing to socket...');
             Utils.debugLog(e);
@@ -223,7 +225,9 @@ const Utils = {
             const resp = response.toString().split(':');
             const iv = resp[0];
             const clientId = resp.length === 3 ? resp[1] : '';
-            const base64Data = new Buffer(resp.length === 3 ? resp[2] : resp[1], 'base64');
+			const data = resp.length === 3 ? resp[2] : resp[1];
+            const base64Data = new Buffer(data, 'base64');
+			Utils.vLog(8, 'Reading ' + response.toString().trim() + ' parts: ' + iv + ' >>> ' + data.trim() + ' >>> ' + Params.connection.key);
             let decipher = crypto.createDecipheriv(Utils.getCipherAlgorithm(Params.connection.key), new Buffer(Params.connection.key, 'hex'), new Buffer(iv, 'hex'));
             decipher.setAutoPadding(false);
 
@@ -360,21 +364,30 @@ Params.token_socket.on('data', function(data) {
         return;
     }
     Utils.debugLog(decryptedData.toString());
-    const dataJson = JSON.parse(decryptedData.toString());
-    Utils.debugLog('Decoded json successfully');
-    if (dataJson.status === 0) {
-        dataJson.dateCreated = Utils.now();
-        Params.tokens[dataJson.loggerId] = dataJson;
-		Utils.debugLog('New token: ');
-		Utils.debugLog(dataJson);
-		Utils.debugLog('Token callbacks: ' + Params.token_socket_callbacks.length);
-        while (Params.token_socket_callbacks.length > 0) {
-            const cb = Params.token_socket_callbacks.splice(0, 1)[0];
-            cb();
-        }
-    } else {
-        Utils.log('Error while obtaining token: ' + dataJson.error_text);
-    }
+	try {
+	    const dataJson = JSON.parse(decryptedData.toString());
+	    Utils.debugLog('Decoded json successfully');
+	    if (dataJson.status === 0) {
+	        dataJson.dateCreated = Utils.now();
+	        Params.tokens[dataJson.loggerId] = dataJson;
+			const queuePos = Params.token_request_queue.indexOf(dataJson.loggerId);
+			if (queuePos !== -1) {
+				Params.token_request_queue.splice(queuePos, 1);
+			}
+			Utils.debugLog('New token: ');
+			Utils.debugLog(dataJson);
+			Utils.debugLog('Token callbacks: ' + Params.token_socket_callbacks.length);
+	        while (Params.token_socket_callbacks.length > 0) {
+	            const cb = Params.token_socket_callbacks.splice(0, 1)[0];
+	            cb();
+	        }
+	    } else {
+	        Utils.log('Error while obtaining token: ' + dataJson.error_text);
+	    }
+	} catch (e) {
+		Utils.log('Exception while obtaining token: ');
+		Utils.log(e);
+	}
 });
 
 // Handles destruction of connection to token server
@@ -399,8 +412,12 @@ obtainToken = function(loggerId, accessCode) {
     }
     if (Params.locks[Params.token_socket.address().port]) {
         Utils.debugLog('Already locked');
-        return; // don't need this!?
+        return;
     }
+	if (Params.token_request_queue.indexOf(loggerId) !== -1) {
+		Utils.debugLog('Token already requested for [' + loggerId + ']');
+		return;
+	}
     Utils.debugLog('obtainToken(' + loggerId + ', ' + accessCode + ')');
     if (accessCode === null) {
         // Get from map (recursive)
@@ -445,6 +462,7 @@ obtainToken = function(loggerId, accessCode) {
         logger_id: loggerId,
         access_code: accessCode
     };
+	Params.token_request_queue.push(loggerId);
     Utils.sendRequest(request, Params.token_socket);
 }
 
