@@ -393,8 +393,8 @@ Params.logging_socket.on('data', function(data) {
 
 // Obtain token for the logger that requires token
 obtainToken = function(loggerId, accessCode) {
-    if (!Params.connected || Params.connecting) {
-        Utils.log('Not connected to the server yet');
+    if (!Params.token_socket_connected) {
+        Utils.log('Not connected to the token server yet');
         return;
     }
     if (Params.locks[Params.token_socket.address().port]) {
@@ -524,11 +524,12 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
 		return;
 	}
 
-    Utils.debugLog('Checking health...');
+    Utils.debugLog('Checking health...[' + loggerId + ']');
 
     if (!isClientValid()) {
         Utils.debugLog('Resetting connection...');
         Params.logging_socket_callbacks.push(function() {
+			Utils.debugLog('Sending log from log callback...');
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, ++callbackDepth);
         });
         Params.connection_socket.destroy();
