@@ -31,19 +31,21 @@ const residueParams = {
 */
 
 app.get('*', function(req, res, next) {
-    logger.info('Request: ' + req.url);
+    //logger.info('Request: ' + req.url);
     return next();
 });
 
 function namedFunc() {
-    logger.debug('this is from named func');
+    logger.info('this is from named func');
 }
 
+app.get('/blah', function (req, res) {
+	logger.info('using sample-app logger');
+    defaultLogger.info('using default logger');
+    res.send('Hello Blah!');
+});
+
 app.get('/', function (req, res) {
-	console.log('using sample-app logger...');
-    logger.info('Another log');
-    //logger.debug('Info Hello World!');
-	console.log('using default logger...');
 	defaultLogger.info('using default logger');
     namedFunc();
     res.send('Hello World!');
