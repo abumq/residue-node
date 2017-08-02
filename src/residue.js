@@ -4,7 +4,7 @@
 // This module provides interface for connecting and interacting with
 // residue server seamlessly, means, once you are connected this module
 // takes care of expired tokens and clients and keep itself updated
-// with latest tokens and ping server when needed to stay alive.
+// with latest tokens and touch server when needed to stay alive.
 //
 // https://github.com/muflihun/residue
 // https://github.com/muflihun/residue-node
@@ -74,7 +74,7 @@ Params.locks[Params.logging_socket.address().port] = false;
 const ConnectType = {
     Connect: 1,
     Acknowledgement: 2,
-    Ping: 3
+    Touch: 3
 };
 
 // Various logging levels accepted by the server
@@ -100,7 +100,7 @@ const Flag = {
 
 const PACKET_DELIMITER = '\r\n\r\n';
 const DEFAULT_ACCESS_CODE = 'default';
-const PING_THRESHOLD = 60;
+const TOUCH_THRESHOLD = 60;
 
 // Utility static functions
 const Utils = {
@@ -476,30 +476,30 @@ obtainToken = function(loggerId, accessCode) {
     Utils.sendRequest(request, Params.token_socket);
 }
 
-shouldSendPing = function() {
+shouldTouch = function() {
     if (!Params.connected || Params.connecting) {
-        // Can't send ping
+        // Can't touch 
         return false;
     }
     if (Params.connection.age === 0) {
         // Always alive!
         return false;
     }
-    return Params.connection.age - (Utils.now() - Params.connection.date_created) < PING_THRESHOLD;
+    return Params.connection.age - (Utils.now() - Params.connection.date_created) < TOUCH_THRESHOLD;
 }
 
-sendPing = function() {
+touch = function() {
     if (Params.connected) {
         if (isClientValid()) {
-            Utils.debugLog('Pinging...');
+            Utils.debugLog('Touching...');
             const request = {
                 _t: Utils.getTimestamp(),
-                type: ConnectType.Ping,
+                type: ConnectType.Touch,
                 client_id: Params.connection.client_id
             };
             Utils.sendRequest(request, Params.connection_socket);
         } else {
-            Utils.log('Could not ping, client already dead ' + (Params.connection.date_created + Params.connection.age) + ' < ' + Utils.now());
+            Utils.log('Could not touch, client already dead ' + (Params.connection.date_created + Params.connection.age) + ' < ' + Utils.now());
         }
     }
 }
@@ -569,13 +569,13 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         return;
     }
 
-    if (shouldSendPing()) {
-        Utils.debugLog('Pinging first...');
+    if (shouldTouch()) {
+        Utils.debugLog('Touching first...');
         Params.logging_socket_callbacks.push(function() {
-            Utils.debugLog('Sending log from ping callback... [' + loggerId + ']');
+            Utils.debugLog('Sending log from touch callback... [' + loggerId + ']');
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
-        sendPing();
+        touch();
         return;
     }
 
