@@ -313,10 +313,12 @@ Params.connection_socket.on('data', function(data) {
                 Params.token_socket.connect(Params.connection.token_port, Params.options.host, function() {
                     Params.token_socket_connected = true;
                     Utils.vLog(8, `Token socket: ${Params.token_socket.address().port}`);
-                    Utils.debugLog('Obtaining tokens...');
-                    Params.options.access_codes.forEach(function(item) {
-                        obtainToken(item.logger_id, item.code);
-                    });
+                    if (Utils.hasFlag(Flag.CHECK_TOKENS)) {
+                        Utils.debugLog('Obtaining tokens...');
+                        Params.options.access_codes.forEach(function(item) {
+                            obtainToken(item.logger_id, item.code);
+                        });
+                    }
                 });
             }
         } else {
