@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [1.0.0-beta.10]
 ### Fixed
 - Fixed issue with token retrieving when client is dead
 - Fixed issue with pinging client when `client_age` < 60
