@@ -91,6 +91,7 @@ const LoggingLevels = {
 const Flag = {
   NONE: 0,
   ALLOW_UNKNOWN_LOGGERS: 1,
+  CHECK_TOKENS: 2,
   ALLOW_DEFAULT_ACCESS_CODE: 4,
   ALLOW_PLAIN_LOG_REQUEST: 8,
   ALLOW_BULK_LOG_REQUEST: 16,
@@ -516,6 +517,9 @@ getToken = function(loggerId) {
 }
 
 hasValidToken = function(loggerId) {
+    if (!Utils.hasFlag(Flag.CHECK_TOKENS)) {
+        return true;
+    }
     let t = Params.tokens[loggerId];
     return typeof t !== 'undefined' && (t.life === 0 || Utils.now() - t.dateCreated < t.life);
 }
@@ -527,7 +531,7 @@ getCurrentTimeUTC = function() {
 }
 
 // Send log request to the server. No response is expected
-sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, callbackDepth) {
+sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel) {
     if (Params.connecting) {
        Params.logging_socket_callbacks.push(function() {
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
@@ -548,15 +552,6 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         });
         return;
     }
-    /*
-    if (typeof callbackDepth === 'undefined') {
-        callbackDepth = 1;
-    }
-    
-    if (callbackDepth > 2) {
-        Utils.log('Ignoring log request from callback #' + callbackDepth);
-        return;
-    }*/
 
     Utils.debugLog('Checking health...[' + loggerId + ']');
 
@@ -564,7 +559,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.debugLog('Resetting connection...');
         Params.logging_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from log callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel/*, ++callbackDepth*/);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
         Params.connection_socket.destroy();
         disconnect();
@@ -576,7 +571,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.debugLog('Pinging first...');
         Params.logging_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from ping callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel/*, ++callbackDepth*/);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
         sendPing();
         return;
@@ -586,7 +581,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.debugLog('Obtaining token first... [' + loggerId + ']');
         Params.token_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from token callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel/*, ++callbackDepth*/);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
         });
         obtainToken(loggerId, null /* means resolve in function */);
         return;
@@ -599,7 +594,6 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         datetime += (1000 * Params.options.time_offset); // offset is in seconds
     }
     const request = {
-        token: getToken(loggerId),
         datetime: datetime,
         logger: loggerId,
         msg: logMessage,
@@ -609,6 +603,9 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         app: Params.options.application_id,
         level: level,
     };
+    if (Utils.hasFlag(Flag.CHECK_TOKENS)) {
+        request.token = getToken(loggerId);
+    }
     if (typeof verboseLevel !== 'undefined') {
         request.vlevel = verboseLevel;
     }

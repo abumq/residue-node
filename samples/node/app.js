@@ -36,7 +36,7 @@ app.get('*', function(req, res, next) {
 });
 
 function namedFunc() {
-    logger.info('this is from named func');
+    logger.debug('this is from named func');
 }
 
 app.get('/blah', function (req, res) {

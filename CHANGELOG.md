@@ -1,5 +1,9 @@
 # Change Log
 
+## [Unreleased]
+### Fixed
+- Use of `CHECK_TOKENS` server flag to reduce overhead of pulling token when not needed
+
 ## [1.0.0-beta.10]
 ### Fixed
 - Fixed issue with token retrieving when client is dead
