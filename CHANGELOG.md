@@ -1,5 +1,13 @@
 # Change Log
 
+## [1.0.0-beta.10]
+### Fixed
+- Fixed issue with token retrieving when client is dead
+- Fixed issue with pinging client when `client_age` < 60
+- Fixed issue with key when client created using different key size
+- Fixed compression flag
+- Fixed issue with token retrieving using default access code
+
 ## [1.0.0-beta.9]
 ### Fixed
 - Use `path` module to resolve relative file paths
