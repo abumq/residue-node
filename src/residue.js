@@ -297,7 +297,10 @@ Params.connection_socket.on('data', function(data) {
         }
         Params.isAcknowledging = true;
         Utils.debugLog('Connecting to Residue Server...(ack)');
-        Params.disconnected_by_remote = false; // connection re-estabilished
+        
+         // connection re-estabilished
+        Params.disconnected_by_remote = false;
+        
         Params.connection = dataJson;
         // Need to acknowledge
         const request = {
@@ -359,7 +362,6 @@ Params.connection_socket.on('data', function(data) {
 Params.connection_socket.on('close', function() {
     Utils.log('Remote connection closed!');
     Params.disconnected_by_remote = true;
-
     disconnect();
 });
 
@@ -561,10 +563,8 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
             Params.logging_socket_callbacks.push(function() {
                  sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
             });
-            if (Params.disconnected_by_remote) {
             Utils.debugLog('Retrying to connect...');
             connect(Params.options);
-        }
         }
         return;
     }
@@ -655,7 +655,6 @@ connect = function(options) {
         return;
     }
     Params.connecting = true;
-    let client = Params.connection_socket;
     try {
         Params.options = typeof options === 'undefined' ? Params.options : options;
         // Normalize
@@ -717,7 +716,7 @@ connect = function(options) {
             };
         }
         Utils.log('Intializing connection...');
-        client.connect(Params.options.connect_port, Params.options.host, function() {
+        Params.connection_socket.connect(Params.options.connect_port, Params.options.host, function() {
             let request = {
                 _t: Utils.getTimestamp(),
                 type: ConnectType.Connect,
@@ -732,7 +731,7 @@ connect = function(options) {
                 r = Utils.encryptRSA(r, Params.server_rsa_key.publicKey);
             }
             const fullReq = r + PACKET_DELIMITER;
-            client.write(fullReq);
+            Params.connection_socket.write(fullReq);
         });
     } catch (e) {
         Utils.log('Error occurred while connecting to residue server');
