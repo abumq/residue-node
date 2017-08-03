@@ -41,7 +41,7 @@ function namedFunc() {
 
 app.get('/blah', function (req, res) {
 	logger.info('using sample-app logger');
-    defaultLogger.info('using default logger');
+    //defaultLogger.info('using default logger');
     res.send('Hello Blah!');
 });
 

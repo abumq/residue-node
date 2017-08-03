@@ -35,9 +35,6 @@ const Params = {
     // whether connected to the server or not
     connected: false,
 
-    // whether connection is being made (enabled at connection_socket, disabled at logging_socket)
-    connecting: false,
-
     // list of tokens currently available
     tokens: [],
 
@@ -47,8 +44,8 @@ const Params = {
     logging_socket: new net.Socket(),
 
     // Debug logging
-    debugging: false,
-    verboseLevel: 8,
+    debugging: true,
+    verboseLevel: 6,
 
     // Status for sockets
     token_socket_connected: false,
@@ -238,7 +235,8 @@ const Utils = {
             plain = plain.replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '');
             return plain;
         } catch (err) {
-            Utils.debugLog(err);
+            Utils.vLog(9, 'decrypt-error: ');
+            Utils.vLog(9, err);
         }
 
         return null;
@@ -291,10 +289,15 @@ Params.connection_socket.on('data', function(data) {
         return;
     }
     const dataJson = JSON.parse(decryptedData.toString());
-    Utils.debugLog('Connection: ');
-    Utils.debugLog(dataJson);
+    Utils.vLog(8, 'Connection: ');
+    Utils.vLog(8, dataJson);
     if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 0) {
-        Utils.debugLog('Connecting to Residue Server...(step 2)');
+        if (Params.isAcknowledging) {
+            return;
+        }
+        Params.isAcknowledging = true;
+        Utils.debugLog('Connecting to Residue Server...(ack)');
+        Params.disconnected_by_remote = false; // connection re-estabilished
         Params.connection = dataJson;
         // Need to acknowledge
         const request = {
@@ -304,9 +307,10 @@ Params.connection_socket.on('data', function(data) {
         };
         Utils.sendRequest(request, Params.connection_socket, true);
     } else if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 1) {
-        Utils.debugLog('Connecting to Residue Server...(step 3)');
+        Utils.debugLog('Estabilising full connection...');
         Params.connection = dataJson;
         Params.connected = true;
+        Params.isAcknowledging = false;
         Utils.vLog(8, `Connection socket: ${Params.connection_socket.address().port}`);
         if (typeof Params.options.access_codes === 'object') {
             if (!Params.token_socket_connected) {
@@ -347,11 +351,16 @@ Params.connection_socket.on('data', function(data) {
     } else {
         Utils.log('Error while connecting to server: ');
         Utils.log(dataJson);
+        Params.connecting = false;
     }
 });
 
 // Handle when connection is destroyed
 Params.connection_socket.on('close', function() {
+    Utils.log('Remote connection closed!');
+    Params.disconnected_by_remote = true;
+
+    disconnect();
 });
 
 Params.connection_socket.on('error', function(error) {
@@ -370,7 +379,7 @@ Params.token_socket.on('data', function(data) {
     Utils.debugLog(decryptedData.toString());
     try {
         const dataJson = JSON.parse(decryptedData.toString());
-        Utils.debugLog('Decoded json successfully');
+        Utils.vLog(7, 'Decoded json successfully');
         if (dataJson.status === 0) {
             dataJson.dateCreated = Utils.now();
             Params.tokens[dataJson.loggerId] = dataJson;
@@ -378,8 +387,8 @@ Params.token_socket.on('data', function(data) {
             if (queuePos !== -1) {
                 Params.token_request_queue.splice(queuePos, 1);
             }
-            Utils.debugLog('New token: ');
-            Utils.debugLog(dataJson);
+            Utils.vLog(8, 'New token: ');
+            Utils.vLog(8, dataJson);
             const callbacksCount = Params.token_socket_callbacks.length;
             Utils.debugLog('Token callbacks: ' + callbacksCount);
             for (let idx = 0; idx < callbacksCount; ++idx) {
@@ -399,10 +408,12 @@ Params.token_socket.on('data', function(data) {
 
 // Handles destruction of connection to token server
 Params.token_socket.on('close', function() {
+    Params.token_socket_connected = false;
 });
 
 // Handle destruction of connection to logging server
 Params.logging_socket.on('close', function() {
+    Params.logging_socket_connected = false;
 });
 
 
@@ -417,13 +428,7 @@ obtainToken = function(loggerId, accessCode) {
         Utils.log('Not connected to the token server yet');
         return;
     }
-    /*
-    // after implementing token_request_queue lock check here shouldn't be needed!
-    if (Params.locks[Params.token_socket.address().port]) {
-        Utils.debugLog('Already locked');
-        return;
-    }
-    */
+
     if (Params.token_request_queue.indexOf(loggerId) !== -1) {
         Utils.debugLog('Token already requested for [' + loggerId + ']');
         return;
@@ -533,16 +538,34 @@ getCurrentTimeUTC = function() {
 }
 
 // Send log request to the server. No response is expected
-sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel) {
+sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime) {
+    let datetime = logDatetime;
+    if (typeof datetime === 'undefined') {
+        datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
+        if (Params.options.time_offset) {
+            datetime += (1000 * Params.options.time_offset); // offset is in seconds
+        }
+    }
     if (Params.connecting) {
+       Utils.debugLog('Still connecting...');
        Params.logging_socket_callbacks.push(function() {
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
        });
        return;
     }
 
     if (!Params.connected) {
         Utils.log('Not connected to the server yet');
+        if (Params.disconnected_by_remote) {
+            Utils.debugLog('Queueing...');
+            Params.logging_socket_callbacks.push(function() {
+                 sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
+            });
+            if (Params.disconnected_by_remote) {
+            Utils.debugLog('Retrying to connect...');
+            connect(Params.options);
+        }
+        }
         return;
     }
 
@@ -550,7 +573,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.debugLog('Waiting for token for logger [' + loggerId + '], requeueing...');
         Params.token_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from requeued token callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, 1);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
         });
         return;
     }
@@ -561,7 +584,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.debugLog('Resetting connection...');
         Params.logging_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from log callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
         });
         Params.connection_socket.destroy();
         disconnect();
@@ -573,7 +596,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.debugLog('Touching first...');
         Params.logging_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from touch callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
         });
         touch();
         return;
@@ -583,7 +606,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.debugLog('Obtaining token first... [' + loggerId + ']');
         Params.token_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from token callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
         });
         obtainToken(loggerId, null /* means resolve in function */);
         return;
@@ -591,10 +614,6 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
 
     Utils.debugLog('Sending log request [' + loggerId  + ']...');
 
-    let datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
-    if (Params.options.time_offset) {
-        datetime += (1000 * Params.options.time_offset); // offset is in seconds
-    }
     const request = {
         datetime: datetime,
         logger: loggerId,
@@ -665,7 +684,7 @@ connect = function(options) {
                     padding: crypto.constants.RSA_PKCS1_PADDING,
                 }
             };
-            Utils.log('Key generated');
+            Utils.debugLog('Key generated');
         } else {
             Params.rsa_key = {
                 generated: false,
@@ -687,7 +706,7 @@ connect = function(options) {
                     throw 'ERROR: You specified client_key_secret and did not provide client_public_key. We cannot extract public-key for encrypted private keys. Please provide public key manually';
                 }
             }
-            Utils.log('Known client...');
+            Utils.vLog(8, 'Known client...');
         }
         if (typeof Params.options.server_public_key !== 'undefined') {
             Params.server_rsa_key = {
@@ -697,7 +716,7 @@ connect = function(options) {
                 },
             };
         }
-        Utils.log('Connecting to the Residue server...');
+        Utils.log('Intializing connection...');
         client.connect(Params.options.connect_port, Params.options.host, function() {
             let request = {
                 _t: Utils.getTimestamp(),
@@ -724,20 +743,26 @@ connect = function(options) {
 
 // Disconnect from the server safely.
 disconnect = function() {
+    Params.tokens = [];
+    Params.token_request_queue = [];
+    Params.connected = false;
+    Params.connecting = false;
+    Params.connection = null;
+    Params.token_socket_connected = false;
+    Params.logging_socket_connected = false;
     if (Params.connected) {
-        if (Params.connection_socket.destroyed) {
-            Utils.log('Disconnecting gracefully...');
-            Params.token_socket.end();
-            Params.logging_socket.end();
-            Params.tokens = [];
-            Params.connected = false;
-            Params.connection = null;
-            Params.token_socket_connected = false;
-            Params.logging_socket_connected = false;
-        } else {
-            Utils.log('Disconnecting...');
-            // Following will call 'close' -> disconnect -> gracefully close
-            Params.connection_socket.end();
+        try {
+            if (Params.connection_socket.destroyed) {
+                Utils.log('Disconnecting gracefully...');
+                Params.token_socket.end();
+                Params.logging_socket.end();
+            } else {
+                Utils.log('Disconnecting...');
+                // Following will call 'close' -> disconnect -> gracefully close
+                Params.connection_socket.end();
+            }
+        } catch (err) {
+            
         }
     }
 }
