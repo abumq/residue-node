@@ -356,7 +356,9 @@ Params.connection_socket.on('data', function(data) {
 // Handle when connection is destroyed
 Params.connection_socket.on('close', function() {
     Utils.log('Remote connection closed!');
-    Params.disconnected_by_remote = true;
+	if (Params.connected) {
+    	Params.disconnected_by_remote = true;
+	}
     disconnect();
 });
 
@@ -560,7 +562,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
             });
 			const totalListener = Params.connection_socket.listenerCount('connect');
 			if (totalListener >= 1) {
-            	Utils.log('Checking for connection...');
+            	Utils.log('Checking for connection...' + totalListener);
 				Params.connection_socket.emit('connect');
 			} else {
            	 	Utils.log('Retrying to connect...');
