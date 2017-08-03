@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.0.0-beta.12] - 03-08-2017
+## [1.0.0-beta.13] - 03-08-2017
 ### Update
 - Changed licence to Apache 2.0
 

@@ -1,6 +1,6 @@
 {
   "name": "residue",
-  "version": "1.0.0-beta.12",
+  "version": "1.0.0-beta.13",
   "description": "Logging client for real-time centralized logging server.",
   "main": "src/residue.js",
   "scripts": {
@@ -21,7 +21,7 @@
     "easylogging++"
   ],
   "author": "Muflihun Labs <info@muflihun.com> (https://muflihun.com/)",
-  "license": "Apache 2.0",
+  "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/muflihun/residue-node"
   },
