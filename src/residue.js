@@ -4,7 +4,7 @@
 // This module provides interface for connecting and interacting with
 // residue server seamlessly, means, once you are connected this module
 // takes care of expired tokens and clients and keep itself updated
-// with latest tokens and ping server when needed to stay alive.
+// with latest tokens and touch server when needed to stay alive.
 //
 // https://github.com/muflihun/residue
 // https://github.com/muflihun/residue-node
@@ -35,9 +35,6 @@ const Params = {
     // whether connected to the server or not
     connected: false,
 
-    // whether connection is being made (enabled at connection_socket, disabled at logging_socket)
-    connecting: false,
-
     // list of tokens currently available
     tokens: [],
 
@@ -48,7 +45,7 @@ const Params = {
 
     // Debug logging
     debugging: false,
-    verboseLevel: 8,
+    verboseLevel: 6,
 
     // Status for sockets
     token_socket_connected: false,
@@ -74,7 +71,7 @@ Params.locks[Params.logging_socket.address().port] = false;
 const ConnectType = {
     Connect: 1,
     Acknowledgement: 2,
-    Ping: 3
+    Touch: 3
 };
 
 // Various logging levels accepted by the server
@@ -91,6 +88,7 @@ const LoggingLevels = {
 const Flag = {
   NONE: 0,
   ALLOW_UNKNOWN_LOGGERS: 1,
+  CHECK_TOKENS: 2,
   ALLOW_DEFAULT_ACCESS_CODE: 4,
   ALLOW_PLAIN_LOG_REQUEST: 8,
   ALLOW_BULK_LOG_REQUEST: 16,
@@ -99,7 +97,7 @@ const Flag = {
 
 const PACKET_DELIMITER = '\r\n\r\n';
 const DEFAULT_ACCESS_CODE = 'default';
-const PING_THRESHOLD = 60;
+const TOUCH_THRESHOLD = 120; // should always be min(client_age)
 
 // Utility static functions
 const Utils = {
@@ -237,7 +235,8 @@ const Utils = {
             plain = plain.replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '');
             return plain;
         } catch (err) {
-            Utils.debugLog(err);
+            Utils.vLog(9, 'decrypt-error: ');
+            Utils.vLog(9, err);
         }
 
         return null;
@@ -290,10 +289,14 @@ Params.connection_socket.on('data', function(data) {
         return;
     }
     const dataJson = JSON.parse(decryptedData.toString());
-    Utils.debugLog('Connection: ');
-    Utils.debugLog(dataJson);
+    Utils.vLog(8, 'Connection: ');
+    Utils.vLog(8, dataJson);
     if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 0) {
-        Utils.debugLog('Connecting to Residue Server...(step 2)');
+        Utils.debugLog('Connecting to Residue Server...(ack)');
+        
+         // connection re-estabilished
+        Params.disconnected_by_remote = false;
+        
         Params.connection = dataJson;
         // Need to acknowledge
         const request = {
@@ -303,7 +306,7 @@ Params.connection_socket.on('data', function(data) {
         };
         Utils.sendRequest(request, Params.connection_socket, true);
     } else if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 1) {
-        Utils.debugLog('Connecting to Residue Server...(step 3)');
+        Utils.debugLog('Estabilising full connection...');
         Params.connection = dataJson;
         Params.connected = true;
         Utils.vLog(8, `Connection socket: ${Params.connection_socket.address().port}`);
@@ -312,10 +315,12 @@ Params.connection_socket.on('data', function(data) {
                 Params.token_socket.connect(Params.connection.token_port, Params.options.host, function() {
                     Params.token_socket_connected = true;
                     Utils.vLog(8, `Token socket: ${Params.token_socket.address().port}`);
-                    Utils.debugLog('Obtaining tokens...');
-                    Params.options.access_codes.forEach(function(item) {
-                        obtainToken(item.logger_id, item.code);
-                    });
+                    if (Utils.hasFlag(Flag.CHECK_TOKENS)) {
+                        Utils.debugLog('Obtaining tokens...');
+                        Params.options.access_codes.forEach(function(item) {
+                            obtainToken(item.logger_id, item.code);
+                        });
+                    }
                 });
             }
         } else {
@@ -344,11 +349,17 @@ Params.connection_socket.on('data', function(data) {
     } else {
         Utils.log('Error while connecting to server: ');
         Utils.log(dataJson);
+        Params.connecting = false;
     }
 });
 
 // Handle when connection is destroyed
 Params.connection_socket.on('close', function() {
+    Utils.log('Remote connection closed!');
+	if (Params.connected) {
+    	Params.disconnected_by_remote = true;
+	}
+    disconnect();
 });
 
 Params.connection_socket.on('error', function(error) {
@@ -367,7 +378,7 @@ Params.token_socket.on('data', function(data) {
     Utils.debugLog(decryptedData.toString());
     try {
         const dataJson = JSON.parse(decryptedData.toString());
-        Utils.debugLog('Decoded json successfully');
+        Utils.vLog(7, 'Decoded json successfully');
         if (dataJson.status === 0) {
             dataJson.dateCreated = Utils.now();
             Params.tokens[dataJson.loggerId] = dataJson;
@@ -375,8 +386,8 @@ Params.token_socket.on('data', function(data) {
             if (queuePos !== -1) {
                 Params.token_request_queue.splice(queuePos, 1);
             }
-            Utils.debugLog('New token: ');
-            Utils.debugLog(dataJson);
+            Utils.vLog(8, 'New token: ');
+            Utils.vLog(8, dataJson);
             const callbacksCount = Params.token_socket_callbacks.length;
             Utils.debugLog('Token callbacks: ' + callbacksCount);
             for (let idx = 0; idx < callbacksCount; ++idx) {
@@ -396,10 +407,12 @@ Params.token_socket.on('data', function(data) {
 
 // Handles destruction of connection to token server
 Params.token_socket.on('close', function() {
+    Params.token_socket_connected = false;
 });
 
 // Handle destruction of connection to logging server
 Params.logging_socket.on('close', function() {
+    Params.logging_socket_connected = false;
 });
 
 
@@ -414,13 +427,7 @@ obtainToken = function(loggerId, accessCode) {
         Utils.log('Not connected to the token server yet');
         return;
     }
-    /*
-    // after implementing token_request_queue lock check here shouldn't be needed!
-    if (Params.locks[Params.token_socket.address().port]) {
-        Utils.debugLog('Already locked');
-        return;
-    }
-    */
+
     if (Params.token_request_queue.indexOf(loggerId) !== -1) {
         Utils.debugLog('Token already requested for [' + loggerId + ']');
         return;
@@ -473,30 +480,30 @@ obtainToken = function(loggerId, accessCode) {
     Utils.sendRequest(request, Params.token_socket);
 }
 
-shouldSendPing = function() {
+shouldTouch = function() {
     if (!Params.connected || Params.connecting) {
-        // Can't send ping
+        // Can't touch 
         return false;
     }
     if (Params.connection.age === 0) {
         // Always alive!
         return false;
     }
-    return Params.connection.age - (Utils.now() - Params.connection.date_created) < PING_THRESHOLD;
+    return Params.connection.age - (Utils.now() - Params.connection.date_created) < TOUCH_THRESHOLD;
 }
 
-sendPing = function() {
+touch = function() {
     if (Params.connected) {
         if (isClientValid()) {
-            Utils.debugLog('Pinging...');
+            Utils.debugLog('Touching...');
             const request = {
                 _t: Utils.getTimestamp(),
-                type: ConnectType.Ping,
+                type: ConnectType.Touch,
                 client_id: Params.connection.client_id
             };
             Utils.sendRequest(request, Params.connection_socket);
         } else {
-            Utils.log('Could not ping, client already dead ' + (Params.connection.date_created + Params.connection.age) + ' < ' + Utils.now());
+            Utils.log('Could not touch, client already dead ' + (Params.connection.date_created + Params.connection.age) + ' < ' + Utils.now());
         }
     }
 }
@@ -516,6 +523,9 @@ getToken = function(loggerId) {
 }
 
 hasValidToken = function(loggerId) {
+    if (!Utils.hasFlag(Flag.CHECK_TOKENS)) {
+        return true;
+    }
     let t = Params.tokens[loggerId];
     return typeof t !== 'undefined' && (t.life === 0 || Utils.now() - t.dateCreated < t.life);
 }
@@ -527,16 +537,38 @@ getCurrentTimeUTC = function() {
 }
 
 // Send log request to the server. No response is expected
-sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, callbackDepth) {
+sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime) {
+    let datetime = logDatetime;
+    if (typeof datetime === 'undefined') {
+        datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
+        if (Params.options.time_offset) {
+            datetime += (1000 * Params.options.time_offset); // offset is in seconds
+        }
+    }
     if (Params.connecting) {
+       Utils.debugLog('Still connecting...');
        Params.logging_socket_callbacks.push(function() {
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
        });
        return;
     }
 
     if (!Params.connected) {
         Utils.log('Not connected to the server yet');
+        if (Params.disconnected_by_remote) {
+            Utils.debugLog('Queueing...');
+            Params.logging_socket_callbacks.push(function() {
+                 sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
+            });
+			const totalListener = Params.connection_socket.listenerCount('connect');
+			if (totalListener >= 1) {
+            	Utils.log('Checking for connection...' + totalListener);
+				Params.connection_socket.emit('connect');
+			} else {
+           	 	Utils.log('Retrying to connect...');
+            	connect(Params.options);
+			}
+        }
         return;
     }
 
@@ -544,19 +576,10 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.debugLog('Waiting for token for logger [' + loggerId + '], requeueing...');
         Params.token_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from requeued token callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, 1);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
         });
         return;
     }
-    /*
-    if (typeof callbackDepth === 'undefined') {
-        callbackDepth = 1;
-    }
-    
-    if (callbackDepth > 2) {
-        Utils.log('Ignoring log request from callback #' + callbackDepth);
-        return;
-    }*/
 
     Utils.debugLog('Checking health...[' + loggerId + ']');
 
@@ -564,7 +587,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.debugLog('Resetting connection...');
         Params.logging_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from log callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel/*, ++callbackDepth*/);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
         });
         Params.connection_socket.destroy();
         disconnect();
@@ -572,13 +595,13 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         return;
     }
 
-    if (shouldSendPing()) {
-        Utils.debugLog('Pinging first...');
+    if (shouldTouch()) {
+        Utils.debugLog('Touching first...');
         Params.logging_socket_callbacks.push(function() {
-            Utils.debugLog('Sending log from ping callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel/*, ++callbackDepth*/);
+            Utils.debugLog('Sending log from touch callback... [' + loggerId + ']');
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
         });
-        sendPing();
+        touch();
         return;
     }
 
@@ -586,7 +609,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         Utils.debugLog('Obtaining token first... [' + loggerId + ']');
         Params.token_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from token callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel/*, ++callbackDepth*/);
+            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
         });
         obtainToken(loggerId, null /* means resolve in function */);
         return;
@@ -594,12 +617,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
 
     Utils.debugLog('Sending log request [' + loggerId  + ']...');
 
-    let datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
-    if (Params.options.time_offset) {
-        datetime += (1000 * Params.options.time_offset); // offset is in seconds
-    }
     const request = {
-        token: getToken(loggerId),
         datetime: datetime,
         logger: loggerId,
         msg: logMessage,
@@ -609,6 +627,9 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         app: Params.options.application_id,
         level: level,
     };
+    if (Utils.hasFlag(Flag.CHECK_TOKENS)) {
+        request.token = getToken(loggerId);
+    }
     if (typeof verboseLevel !== 'undefined') {
         request.vlevel = verboseLevel;
     }
@@ -637,7 +658,6 @@ connect = function(options) {
         return;
     }
     Params.connecting = true;
-    let client = Params.connection_socket;
     try {
         Params.options = typeof options === 'undefined' ? Params.options : options;
         // Normalize
@@ -666,7 +686,7 @@ connect = function(options) {
                     padding: crypto.constants.RSA_PKCS1_PADDING,
                 }
             };
-            Utils.log('Key generated');
+            Utils.debugLog('Key generated');
         } else {
             Params.rsa_key = {
                 generated: false,
@@ -688,7 +708,7 @@ connect = function(options) {
                     throw 'ERROR: You specified client_key_secret and did not provide client_public_key. We cannot extract public-key for encrypted private keys. Please provide public key manually';
                 }
             }
-            Utils.log('Known client...');
+            Utils.vLog(8, 'Known client...');
         }
         if (typeof Params.options.server_public_key !== 'undefined') {
             Params.server_rsa_key = {
@@ -698,8 +718,8 @@ connect = function(options) {
                 },
             };
         }
-        Utils.log('Connecting to the Residue server...');
-        client.connect(Params.options.connect_port, Params.options.host, function() {
+        Utils.log('Intializing connection...');
+        Params.connection_socket.connect(Params.options.connect_port, Params.options.host, function() {
             let request = {
                 _t: Utils.getTimestamp(),
                 type: ConnectType.Connect,
@@ -714,7 +734,7 @@ connect = function(options) {
                 r = Utils.encryptRSA(r, Params.server_rsa_key.publicKey);
             }
             const fullReq = r + PACKET_DELIMITER;
-            client.write(fullReq);
+            Params.connection_socket.write(fullReq);
         });
     } catch (e) {
         Utils.log('Error occurred while connecting to residue server');
@@ -725,20 +745,26 @@ connect = function(options) {
 
 // Disconnect from the server safely.
 disconnect = function() {
+    Params.tokens = [];
+    Params.token_request_queue = [];
+    Params.connected = false;
+    Params.connecting = false;
+    Params.connection = null;
+    Params.token_socket_connected = false;
+    Params.logging_socket_connected = false;
     if (Params.connected) {
-        if (Params.connection_socket.destroyed) {
-            Utils.log('Disconnecting gracefully...');
-            Params.token_socket.end();
-            Params.logging_socket.end();
-            Params.tokens = [];
-            Params.connected = false;
-            Params.connection = null;
-            Params.token_socket_connected = false;
-            Params.logging_socket_connected = false;
-        } else {
-            Utils.log('Disconnecting...');
-            // Following will call 'close' -> disconnect -> gracefully close
-            Params.connection_socket.end();
+        try {
+            if (Params.connection_socket.destroyed) {
+                Utils.log('Disconnecting gracefully...');
+                Params.token_socket.end();
+                Params.logging_socket.end();
+            } else {
+                Utils.log('Disconnecting...');
+                // Following will call 'close' -> disconnect -> gracefully close
+                Params.connection_socket.end();
+            }
+        } catch (err) {
+            
         }
     }
 }

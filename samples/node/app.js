@@ -36,13 +36,17 @@ app.get('*', function(req, res, next) {
 });
 
 function namedFunc() {
-    logger.info('this is from named func');
+    logger.debug('this is from named func');
 }
 
-app.get('/blah', function (req, res) {
+app.get('/sample-app', function (req, res) {
 	logger.info('using sample-app logger');
-    defaultLogger.info('using default logger');
-    res.send('Hello Blah!');
+    res.send('Hello sample-app logger!');
+});
+
+app.get('/default', function (req, res) {
+	defaultLogger.info('using default logger');
+    res.send('Hello default logger!');
 });
 
 app.get('/', function (req, res) {
