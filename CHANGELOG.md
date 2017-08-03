@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [1.0.0-beta.11] - 03-08-2017
 ### Fixed
 - Use of `CHECK_TOKENS` server flag to reduce overhead of pulling token when not needed
 - Change ping to touch
