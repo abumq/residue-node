@@ -97,7 +97,7 @@ const Flag = {
 
 const PACKET_DELIMITER = '\r\n\r\n';
 const DEFAULT_ACCESS_CODE = 'default';
-const TOUCH_THRESHOLD = 60;
+const TOUCH_THRESHOLD = 120; // should always be min(client_age)
 
 // Utility static functions
 const Utils = {
