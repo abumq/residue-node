@@ -292,10 +292,6 @@ Params.connection_socket.on('data', function(data) {
     Utils.vLog(8, 'Connection: ');
     Utils.vLog(8, dataJson);
     if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 0) {
-        if (Params.isAcknowledging) {
-            return;
-        }
-        Params.isAcknowledging = true;
         Utils.debugLog('Connecting to Residue Server...(ack)');
         
          // connection re-estabilished
@@ -313,7 +309,6 @@ Params.connection_socket.on('data', function(data) {
         Utils.debugLog('Estabilising full connection...');
         Params.connection = dataJson;
         Params.connected = true;
-        Params.isAcknowledging = false;
         Utils.vLog(8, `Connection socket: ${Params.connection_socket.address().port}`);
         if (typeof Params.options.access_codes === 'object') {
             if (!Params.token_socket_connected) {
@@ -563,8 +558,14 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
             Params.logging_socket_callbacks.push(function() {
                  sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
             });
-            Utils.debugLog('Retrying to connect...');
-            connect(Params.options);
+			const totalListener = Params.connection_socket.listenerCount('connect');
+			if (totalListener >= 1) {
+            	Utils.log('Checking for connection...');
+				Params.connection_socket.emit('connect');
+			} else {
+           	 	Utils.log('Retrying to connect...');
+            	connect(Params.options);
+			}
         }
         return;
     }

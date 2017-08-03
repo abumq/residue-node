@@ -4,7 +4,7 @@
 ### Fixed
 - Use of `CHECK_TOKENS` server flag to reduce overhead of pulling token when not needed
 - Change ping to touch
-- Re-estabilish connection if remote disconnected and dispatch all the logs (note: it does not work with `server_public_key`)
+- Re-estabilish connection if remote disconnected and dispatch all the logs
 
 ## [1.0.0-beta.10]
 ### Fixed
