@@ -162,9 +162,6 @@ const Utils = {
             });
             return;
         }
-        if (sendPlain) {
-            request.client_id = Params.connection.client_id;
-        }
         let finalRequest = JSON.stringify(request);
         if (compress) {
             finalRequest = new Buffer(zlib.deflateSync(finalRequest)).toString('base64');
@@ -356,9 +353,9 @@ Params.connection_socket.on('data', function(data) {
 // Handle when connection is destroyed
 Params.connection_socket.on('close', function() {
     Utils.log('Remote connection closed!');
-	if (Params.connected) {
-    	Params.disconnected_by_remote = true;
-	}
+    if (Params.connected) {
+        Params.disconnected_by_remote = true;
+    }
     disconnect();
 });
 
@@ -560,14 +557,14 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
             Params.logging_socket_callbacks.push(function() {
                  sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
             });
-			const totalListener = Params.connection_socket.listenerCount('connect');
-			if (totalListener >= 1) {
-            	Utils.log('Checking for connection...' + totalListener);
-				Params.connection_socket.emit('connect');
-			} else {
-           	 	Utils.log('Retrying to connect...');
-            	connect(Params.options);
-			}
+            const totalListener = Params.connection_socket.listenerCount('connect');
+            if (totalListener >= 1) {
+                Utils.log('Checking for connection...' + totalListener);
+                Params.connection_socket.emit('connect');
+            } else {
+                    Utils.log('Retrying to connect...');
+                connect(Params.options);
+            }
         }
         return;
     }
@@ -632,6 +629,9 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     }
     if (typeof verboseLevel !== 'undefined') {
         request.vlevel = verboseLevel;
+    }
+    if (Params.options.plain_request) {
+        request.client_id = Params.connection.client_id;
     }
     Utils.sendRequest(request, Params.logging_socket, false, Params.options.plain_request && Utils.hasFlag(Flag.ALLOW_PLAIN_LOG_REQUEST), Utils.hasFlag(Flag.COMPRESSION));
 }
@@ -824,7 +824,7 @@ Logger = function(id) {
         sendLogRequest(message, LoggingLevels.Fatal, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
     }
 
-    this.verbose = function(message, level) {
+    this.verbose = function(level, message) {
         sendLogRequest(message, LoggingLevels.Verbose, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), level);
     }
 }

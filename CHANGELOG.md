@@ -1,5 +1,9 @@
 # Change Log
 
+## [Unreleased]
+### Changes
+- Changed verbose signature from `msg, level` to `level, msg`
+
 ## [1.0.0-beta.13] - 03-08-2017
 ### Update
 - Changed licence to Apache 2.0

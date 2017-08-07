@@ -50,7 +50,8 @@ app.get('/default', function (req, res) {
 });
 
 app.get('/', function (req, res) {
-	defaultLogger.info('using default logger');
+	defaultLogger.info('info default logger');
+	defaultLogger.verbose(3, 'verbose using default logger');
     namedFunc();
     res.send('Hello World!');
 });
