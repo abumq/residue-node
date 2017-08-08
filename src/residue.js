@@ -10,6 +10,8 @@
 // https://github.com/muflihun/residue-node
 //
 
+"use strict"; 
+
 const fs = require('fs');
 const path = require('path');
 const net = require('net');
@@ -419,7 +421,7 @@ Params.logging_socket.on('data', function(data) {
 });
 
 // Obtain token for the logger that requires token
-obtainToken = function(loggerId, accessCode) {
+const obtainToken = function(loggerId, accessCode) {
     if (!Params.token_socket_connected) {
         Utils.log('Not connected to the token server yet');
         return;
@@ -477,7 +479,7 @@ obtainToken = function(loggerId, accessCode) {
     Utils.sendRequest(request, Params.token_socket);
 }
 
-shouldTouch = function() {
+const shouldTouch = function() {
     if (!Params.connected || Params.connecting) {
         // Can't touch 
         return false;
@@ -489,7 +491,7 @@ shouldTouch = function() {
     return Params.connection.age - (Utils.now() - Params.connection.date_created) < TOUCH_THRESHOLD;
 }
 
-touch = function() {
+const touch = function() {
     if (Params.connected) {
         if (isClientValid()) {
             Utils.debugLog('Touching...');
@@ -505,7 +507,7 @@ touch = function() {
     }
 }
 
-isClientValid = function() {
+const isClientValid = function() {
     if (!Params.connected) {
         return false;
     }
@@ -515,11 +517,11 @@ isClientValid = function() {
     return Params.connection.date_created + Params.connection.age >= Utils.now();
 }
 
-getToken = function(loggerId) {
+const getToken = function(loggerId) {
     return typeof Params.tokens[loggerId] === 'undefined' ? '' : Params.tokens[loggerId].token;
 }
 
-hasValidToken = function(loggerId) {
+const hasValidToken = function(loggerId) {
     if (!Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
         return true;
     }
@@ -528,13 +530,13 @@ hasValidToken = function(loggerId) {
 }
 
 // Returns UTC time
-getCurrentTimeUTC = function() {
+const getCurrentTimeUTC = function() {
     const newDate = new Date();
     return newDate.getTime() + newDate.getTimezoneOffset() * 60000;
 }
 
 // Send log request to the server. No response is expected
-sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime) {
+const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime) {
     let datetime = logDatetime;
     if (typeof datetime === 'undefined') {
         datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
@@ -636,12 +638,12 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
     Utils.sendRequest(request, Params.logging_socket, false, Params.options.plain_request && Utils.hasFlag(Flag.ALLOW_PLAIN_LOG_REQUEST), Utils.hasFlag(Flag.COMPRESSION));
 }
 
-isNormalInteger = function(str) {
+const isNormalInteger = function(str) {
     var n = Math.floor(Number(str));
     return String(n) === str && n >= 0;
 }
 
-loadConfiguration = function(jsonFilename) {
+const loadConfiguration = function(jsonFilename) {
     if (typeof jsonFilename === 'undefined') {
         Utils.log('Please select JSON filename that contains configurations');
         return false;
@@ -652,7 +654,7 @@ loadConfiguration = function(jsonFilename) {
 }
 
 // Securily connect to residue server using defined options
-connect = function(options) {
+const connect = function(options) {
     if (Params.connected && Params.connection !== null) {
         Utils.log('Already connected to the server with ID [' + Params.connection.client_id + ']')
         return;
@@ -744,7 +746,7 @@ connect = function(options) {
 }
 
 // Disconnect from the server safely.
-disconnect = function() {
+const disconnect = function() {
     Params.tokens = [];
     Params.token_request_queue = [];
     Params.connected = false;
@@ -770,25 +772,25 @@ disconnect = function() {
 }
 
 // Get location of callstack in <file>:<line> format
-getSourceLocation = function(splitChar) {
+const getSourceLocation = function(splitChar) {
     return (new Error).stack.split('\n')[4].replace(' at ', '').trim().split(splitChar);
 }
 
 // Get file of callstack.
 // See getSourceLocation
-getSourceFile = function() {
+const getSourceFile = function() {
     return getSourceLocation(':')[0];
 }
 
 // Get line of callstack.
 // See getSourceLocation
-getSourceLine = function() {
+const getSourceLine = function() {
     return parseInt(getSourceLocation(':')[1]);
 }
 
 // Get func of call stack
 // See getSourceLocation
-getSourceFunc = function() {
+const getSourceFunc = function() {
     const parts = getSourceLocation(' ');
     if (parts.length <= 1) {
         return 'anonymous';
@@ -797,7 +799,7 @@ getSourceFunc = function() {
 }
 
 // Logger interface for user to send log messages to server
-Logger = function(id) {
+const Logger = function(id) {
     this.id = id;
 
     this.info = function(message) {
@@ -831,7 +833,7 @@ Logger = function(id) {
 
 // Get new logger with provided ID for writing logs
 // Make sure you have provided us with corresponding access code for seamless connection if needed.
-getLogger = function(id) {
+const getLogger = function(id) {
     return new Logger(id);
 }
 
