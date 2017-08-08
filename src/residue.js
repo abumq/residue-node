@@ -88,7 +88,7 @@ const LoggingLevels = {
 const Flag = {
   NONE: 0,
   ALLOW_UNKNOWN_LOGGERS: 1,
-  CHECK_TOKENS: 2,
+  REQUIRES_TOKEN: 2,
   ALLOW_DEFAULT_ACCESS_CODE: 4,
   ALLOW_PLAIN_LOG_REQUEST: 8,
   ALLOW_BULK_LOG_REQUEST: 16,
@@ -161,9 +161,6 @@ const Utils = {
                 Utils.sendRequest(request, socket, false, sendPlain, compress);
             });
             return;
-        }
-        if (sendPlain) {
-            request.client_id = Params.connection.client_id;
         }
         let finalRequest = JSON.stringify(request);
         if (compress) {
@@ -315,7 +312,7 @@ Params.connection_socket.on('data', function(data) {
                 Params.token_socket.connect(Params.connection.token_port, Params.options.host, function() {
                     Params.token_socket_connected = true;
                     Utils.vLog(8, `Token socket: ${Params.token_socket.address().port}`);
-                    if (Utils.hasFlag(Flag.CHECK_TOKENS)) {
+                    if (Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
                         Utils.debugLog('Obtaining tokens...');
                         Params.options.access_codes.forEach(function(item) {
                             obtainToken(item.logger_id, item.code);
@@ -356,9 +353,9 @@ Params.connection_socket.on('data', function(data) {
 // Handle when connection is destroyed
 Params.connection_socket.on('close', function() {
     Utils.log('Remote connection closed!');
-	if (Params.connected) {
-    	Params.disconnected_by_remote = true;
-	}
+    if (Params.connected) {
+        Params.disconnected_by_remote = true;
+    }
     disconnect();
 });
 
@@ -523,7 +520,7 @@ getToken = function(loggerId) {
 }
 
 hasValidToken = function(loggerId) {
-    if (!Utils.hasFlag(Flag.CHECK_TOKENS)) {
+    if (!Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
         return true;
     }
     let t = Params.tokens[loggerId];
@@ -560,14 +557,14 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
             Params.logging_socket_callbacks.push(function() {
                  sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
             });
-			const totalListener = Params.connection_socket.listenerCount('connect');
-			if (totalListener >= 1) {
-            	Utils.log('Checking for connection...' + totalListener);
-				Params.connection_socket.emit('connect');
-			} else {
-           	 	Utils.log('Retrying to connect...');
-            	connect(Params.options);
-			}
+            const totalListener = Params.connection_socket.listenerCount('connect');
+            if (totalListener >= 1) {
+                Utils.log('Checking for connection...' + totalListener);
+                Params.connection_socket.emit('connect');
+            } else {
+                    Utils.log('Retrying to connect...');
+                connect(Params.options);
+            }
         }
         return;
     }
@@ -627,11 +624,14 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         app: Params.options.application_id,
         level: level,
     };
-    if (Utils.hasFlag(Flag.CHECK_TOKENS)) {
+    if (Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
         request.token = getToken(loggerId);
     }
     if (typeof verboseLevel !== 'undefined') {
         request.vlevel = verboseLevel;
+    }
+    if (Params.options.plain_request) {
+        request.client_id = Params.connection.client_id;
     }
     Utils.sendRequest(request, Params.logging_socket, false, Params.options.plain_request && Utils.hasFlag(Flag.ALLOW_PLAIN_LOG_REQUEST), Utils.hasFlag(Flag.COMPRESSION));
 }
@@ -824,7 +824,7 @@ Logger = function(id) {
         sendLogRequest(message, LoggingLevels.Fatal, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
     }
 
-    this.verbose = function(message, level) {
+    this.verbose = function(level, message) {
         sendLogRequest(message, LoggingLevels.Verbose, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), level);
     }
 }
