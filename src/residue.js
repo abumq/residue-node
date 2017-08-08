@@ -88,7 +88,7 @@ const LoggingLevels = {
 const Flag = {
   NONE: 0,
   ALLOW_UNKNOWN_LOGGERS: 1,
-  CHECK_TOKENS: 2,
+  REQUIRES_TOKEN: 2,
   ALLOW_DEFAULT_ACCESS_CODE: 4,
   ALLOW_PLAIN_LOG_REQUEST: 8,
   ALLOW_BULK_LOG_REQUEST: 16,
@@ -312,7 +312,7 @@ Params.connection_socket.on('data', function(data) {
                 Params.token_socket.connect(Params.connection.token_port, Params.options.host, function() {
                     Params.token_socket_connected = true;
                     Utils.vLog(8, `Token socket: ${Params.token_socket.address().port}`);
-                    if (Utils.hasFlag(Flag.CHECK_TOKENS)) {
+                    if (Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
                         Utils.debugLog('Obtaining tokens...');
                         Params.options.access_codes.forEach(function(item) {
                             obtainToken(item.logger_id, item.code);
@@ -520,7 +520,7 @@ getToken = function(loggerId) {
 }
 
 hasValidToken = function(loggerId) {
-    if (!Utils.hasFlag(Flag.CHECK_TOKENS)) {
+    if (!Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
         return true;
     }
     let t = Params.tokens[loggerId];
@@ -624,7 +624,7 @@ sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, s
         app: Params.options.application_id,
         level: level,
     };
-    if (Utils.hasFlag(Flag.CHECK_TOKENS)) {
+    if (Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
         request.token = getToken(loggerId);
     }
     if (typeof verboseLevel !== 'undefined') {
