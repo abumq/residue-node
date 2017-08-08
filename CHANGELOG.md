@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [1.0.0-beta.14] - 08-08-2017
 ### Changes
 - Changed verbose signature from `msg, level` to `level, msg`
 - Updated to use `requires_token` naming
