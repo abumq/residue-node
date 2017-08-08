@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.0.0-beta.15] - 08-08-2017
+### Changes
+- Strict mode fix
+
 ## [1.0.0-beta.14] - 08-08-2017
 ### Changes
 - Changed verbose signature from `msg, level` to `level, msg`
