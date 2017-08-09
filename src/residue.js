@@ -1,5 +1,5 @@
 //
-// Official residue client for NodeJS
+// Official NodeJS client library for Residue logging server
 //
 // This module provides interface for connecting and interacting with
 // residue server seamlessly, means, once you are connected this module

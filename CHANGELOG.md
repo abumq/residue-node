@@ -1,5 +1,9 @@
 # Change Log
 
+## [Unreleased]
+### Changes
+- License added to the top of the file
+
 ## [1.0.0-beta.15] - 08-08-2017
 ### Changes
 - Strict mode fix
