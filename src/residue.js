@@ -6,8 +6,14 @@
 // takes care of expired tokens and clients and keep itself updated
 // with latest tokens and touch server when needed to stay alive.
 //
-// https://github.com/muflihun/residue
+// Copyright (C) 2017 Muflihun Labs
+//
+// https://muflihun.com
+// https://muflihun.github.io/residue
 // https://github.com/muflihun/residue-node
+//
+// See https://github.com/muflihun/residue-node/blob/master/LICENSE
+// for licensing information
 //
 
 const fs = require('fs');
