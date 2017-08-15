@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [1.0.0-beta.16] - 15-08-2017
 ### Changes
 - License added to the top of the file
 
