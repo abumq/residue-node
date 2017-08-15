@@ -1,4 +1,4 @@
-                   ‫بسم الله الرَّحْمَنِ الرَّحِيمِ
+﷽
 
 # Residue NodeJS Client
 A very simple, secure NodeJS library to interact with residue seamlessly.
