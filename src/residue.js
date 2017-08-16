@@ -1,19 +1,17 @@
 //
-// Official NodeJS client library for Residue logging server
+// Official Node.js client library for Residue logging server
+//
+// Copyright 2017 Muflihun Labs
 //
 // This module provides interface for connecting and interacting with
-// residue server seamlessly, means, once you are connected this module
-// takes care of expired tokens and clients and keep itself updated
-// with latest tokens and touch server when needed to stay alive.
-//
-// Copyright (C) 2017 Muflihun Labs
+// residue server seamlessly. Once you are connected this module
+// takes care of lost connections, expired tokens, expired clients
+// and keep itself updated with latest tokens and touch server when 
+// needed to stay alive.
 //
 // https://muflihun.com
 // https://muflihun.github.io/residue
 // https://github.com/muflihun/residue-node
-//
-// See https://github.com/muflihun/residue-node/blob/master/LICENSE
-// for licensing information
 //
 
 "use strict"; 
@@ -22,8 +20,13 @@ const fs = require('fs');
 const path = require('path');
 const net = require('net');
 const zlib = require('zlib');
-const crypto = require('crypto');
 const NodeRSA = require('node-rsa');
+let crypto;
+try {
+    crypto = require('crypto');
+} catch (err) {
+    console.log('residue package requires crypto (https://nodejs.org/api/crypto.html). It is disabled in your version of node!');
+}
 
 const Params = {
     // user provided options for seamless connection

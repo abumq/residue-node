@@ -1,7 +1,7 @@
 {
   "name": "residue",
-  "version": "1.0.0-beta.16",
-  "description": "NodeJS library to interact with residue seamlessly.",
+  "version": "1.1.0",
+  "description": "Library to interact with residue server seamlessly.",
   "main": "src/residue.js",
   "scripts": {
     "test": "echo \"No tests available\" && exit 1"
@@ -23,7 +23,7 @@
   "author": "Muflihun Labs <info@muflihun.com> (https://muflihun.com/)",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/muflihun/residue-node"
+    "url": "https://github.com/muflihun/residue-node/issues"
   },
   "homepage": "https://github.com/muflihun/residue-node#readme",
   "dependencies": {
