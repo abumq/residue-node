@@ -1,5 +1,10 @@
 # Change Log
 
+## [1.1.0] - 16-08-2017
+### Changes
+- Crypto API check
+- Stable release
+
 ## [1.0.0-beta.16] - 15-08-2017
 ### Changes
 - License added to the top of the file
