@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.1.0] - 16-08-2017
+## [1.1.1] - 16-08-2017
 ### Changes
 - Crypto API check
 - Stable release
