@@ -5,11 +5,7 @@ A very simple, secure Node.js library to interact with residue seamlessly.
 
 This module provides interface for connecting and interacting with residue server seamlessly, means, once you are connected this module takes care of expired tokens and clients and keep itself updated with latest tokens and ping server when needed to stay alive.
 
-[![Version](https://img.shields.io/npm/v/residue.svg)](https://www.npmjs.com/package/residue)
-
-[![GitHub license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/muflihun/residue-node/blob/master/LICENCE)
-
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/MuflihunDotCom/25)
+[![Version](https://img.shields.io/npm/v/residue.svg)](https://www.npmjs.com/package/residue) [![GitHub license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/muflihun/residue-node/blob/master/LICENCE) [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/MuflihunDotCom/25)
 
 ## Native API
 This library depends on following native modules, without them library will not work:
