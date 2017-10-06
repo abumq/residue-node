@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.1.3] - 06-10-2017
+## [1.1.4] - 06-10-2017
 ### Changes
 - Display server version when connected
 
