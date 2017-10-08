@@ -5,6 +5,8 @@ A very simple nodeJS app that uses [residue nodeJS client library](https://www.n
 ### Pre-requisite
 Make sure residue server is running. See [INSTALL.md](https://github.com/muflihun/residue/tree/master/docs/INSTALL.md) for instructions
 
+Encryped key secret: `8583fFir`
+
 ### Run
 ```
 cd ROOT/samples/node
