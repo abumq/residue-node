@@ -336,7 +336,7 @@ Params.connection_socket.on('data', function(data) {
         }
         if (!Params.logging_socket_connected) {
             Params.logging_socket.connect(Params.connection.logging_port, Params.options.host, function() {
-                Utils.log('Connected to Residue!');
+                Utils.log(`Connected to Residue (v${Params.connection.server_info.version})!`);
                 Params.logging_socket_connected = true;
                 Utils.vLog(8, `Logging socket: ${Params.logging_socket.address().port}`);
                 Params.connecting = false;
