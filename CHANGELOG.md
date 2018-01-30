@@ -1,5 +1,8 @@
 # Change Log
 
+## [Unreleased]
+- License information update
+
 ## [1.1.4] - 06-10-2017
 ### Changes
 - Display server version when connected
