@@ -17,10 +17,11 @@ app.get('*', function(req, res, next) {
 
 function namedFunc() {
     logger.debug('this is from named func');
+    logger.error('resitail can format your templates');
 }
 
 app.get('/sample-app', function (req, res) {
-	logger.info('using sample-app logger');
+    logger.info('using sample-app \'wow\'  logger');
     res.send('Hello sample-app logger!');
 });
 
