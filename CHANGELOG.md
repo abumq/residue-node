@@ -1,5 +1,9 @@
 # Change Log
 
+## [Unreleased]
+### Fixes
+- Do not send multiple touch requests when one is pending
+
 ## [1.1.4] - 06-10-2017
 ### Changes
 - Display server version when connected

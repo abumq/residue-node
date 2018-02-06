@@ -55,8 +55,8 @@ const Params = {
     logging_socket: new net.Socket(),
 
     // Debug logging
-    debugging: false,
-    verboseLevel: 6,
+    debugging: true,
+    verboseLevel: 9,
 
     // Status for sockets
     token_socket_connected: false,
@@ -108,7 +108,7 @@ const Flag = {
 
 const PACKET_DELIMITER = '\r\n\r\n';
 const DEFAULT_ACCESS_CODE = 'default';
-const TOUCH_THRESHOLD = 120; // should always be min(client_age)
+const TOUCH_THRESHOLD = 290; // should always be min(client_age)
 
 // Utility static functions
 const Utils = {
@@ -120,6 +120,10 @@ const Utils = {
         if (Params.debugging) {
             console.log(m);
         }
+    },
+
+    traceLog: function(m) {
+        Utils.debugLog(`TRACE: ${m}`);
     },
 
     vLog: function(l, m) {
@@ -183,7 +187,7 @@ const Utils = {
         } else {
             encryptedRequest = finalRequest + PACKET_DELIMITER;
         }
-        Utils.vLog(9, 'Payload (Plain): ' + finalRequest);
+        Utils.vLog(9, 'Payload (Plain): ' + encryptedRequest);
         Utils.vLog(8, 'Locking ' + socket.address().port);
         Params.locks[socket.address().port] = true;
         try {
@@ -314,7 +318,7 @@ Params.connection_socket.on('data', function(data) {
         };
         Utils.sendRequest(request, Params.connection_socket, true);
     } else if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 1) {
-        Utils.debugLog('Estabilising full connection...');
+        Utils.debugLog('Estabilishing full connection...');
         Params.connection = dataJson;
         Params.connected = true;
         Utils.vLog(8, `Connection socket: ${Params.connection_socket.address().port}`);
@@ -502,6 +506,10 @@ const shouldTouch = function() {
 
 const touch = function() {
     if (Params.connected) {
+	    if (Params.connecting) {
+	       Utils.debugLog('Still touching...');
+		   return;
+	    }
         if (isClientValid()) {
             Utils.debugLog('Touching...');
             const request = {
@@ -510,6 +518,7 @@ const touch = function() {
                 client_id: Params.connection.client_id
             };
             Utils.sendRequest(request, Params.connection_socket);
+			Params.connecting = true;
         } else {
             Utils.log('Could not touch, client already dead ' + (Params.connection.date_created + Params.connection.age) + ' < ' + Utils.now());
         }
@@ -597,6 +606,7 @@ const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceL
             Utils.debugLog('Sending log from log callback... [' + loggerId + ']');
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
         });
+		Utils.debugLog('Destroying connection socket');
         Params.connection_socket.destroy();
         disconnect();
         connect(Params.options);
@@ -756,6 +766,7 @@ const connect = function(options) {
 
 // Disconnect from the server safely.
 const disconnect = function() {
+	Utils.traceLog('disconnect()');
     Params.tokens = [];
     Params.token_request_queue = [];
     Params.connected = false;
