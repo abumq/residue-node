@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [1.1.5]
 ### Fixes
 - Do not send multiple touch requests when one is pending
 - Crash when client is expired (#24)
