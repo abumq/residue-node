@@ -3,6 +3,9 @@
 ## [Unreleased]
 ### Fixes
 - Do not send multiple touch requests when one is pending
+- Crash when client is expired (#24)
+
+### Updates
 - License information update
 
 ## [1.1.4] - 06-10-2017

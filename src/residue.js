@@ -110,7 +110,7 @@ const Flag = {
 
 const PACKET_DELIMITER = '\r\n\r\n';
 const DEFAULT_ACCESS_CODE = 'default';
-const TOUCH_THRESHOLD = 290; // should always be min(client_age)
+const TOUCH_THRESHOLD = 60; // should always be min(client_age) - max(client_age/2)
 
 // Utility static functions
 const Utils = {
@@ -508,10 +508,10 @@ const shouldTouch = function() {
 
 const touch = function() {
     if (Params.connected) {
-	    if (Params.connecting) {
-	       Utils.debugLog('Still touching...');
-		   return;
-	    }
+        if (Params.connecting) {
+           Utils.debugLog('Still touching...');
+           return;
+        }
         if (isClientValid()) {
             Utils.debugLog('Touching...');
             const request = {
@@ -520,7 +520,7 @@ const touch = function() {
                 client_id: Params.connection.client_id
             };
             Utils.sendRequest(request, Params.connection_socket);
-			Params.connecting = true;
+            Params.connecting = true;
         } else {
             Utils.log('Could not touch, client already dead ' + (Params.connection.date_created + Params.connection.age) + ' < ' + Utils.now());
         }
@@ -608,8 +608,10 @@ const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceL
             Utils.debugLog('Sending log from log callback... [' + loggerId + ']');
             sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
         });
-		Utils.debugLog('Destroying connection socket');
+        Utils.debugLog('Destroying connection socket');
         Params.connection_socket.destroy();
+        Params.token_socket.destroy();
+        Params.logging_socket.destroy();
         disconnect();
         connect(Params.options);
         return;
@@ -768,7 +770,7 @@ const connect = function(options) {
 
 // Disconnect from the server safely.
 const disconnect = function() {
-	Utils.traceLog('disconnect()');
+    Utils.traceLog('disconnect()');
     Params.tokens = [];
     Params.token_request_queue = [];
     Params.connected = false;
