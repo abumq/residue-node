@@ -9,6 +9,6 @@
   "author": "Muflihun Labs <info@muflihun.com> (https://muflihun.com/)",
   "license": "MIT",
   "dependencies": {
-    "residue": "^1.1.5"
+    "residue": "^1.2.0"
   }
 }
