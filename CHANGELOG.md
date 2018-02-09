@@ -1,5 +1,9 @@
 # Change Log
 
+## [1.2.0]
+### Updates
+- Support formatted logging
+
 ## [1.1.5]
 ### Fixes
 - Do not send multiple touch requests when one is pending
