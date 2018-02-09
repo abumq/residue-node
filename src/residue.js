@@ -58,8 +58,8 @@ const Params = {
     logging_socket: new net.Socket(),
 
     // Debug logging
-    debugging: true,
-    verboseLevel: 9,
+    debugging: false,
+    verboseLevel: 0,
 
     // Status for sockets
     token_socket_connected: false,
@@ -640,10 +640,16 @@ const sendLogRequest = function(level, loggerId, sourceFile, sourceLine, sourceF
 
     Utils.debugLog('Sending log request [' + loggerId  + ']...');
 
+    const cpy = args;
+    for (var idx = 0; idx < cpy.length; ++idx) {
+        if (typeof cpy[idx] === 'object') {
+            cpy[idx] = JSON.stringify(cpy[idx]);
+        }
+    }
     const request = {
         datetime: datetime,
         logger: loggerId,
-        msg: util.format(format, ...args),
+        msg: util.format(format, ...cpy),
         file: sourceFile,
         line: sourceLine,
         func: sourceFunc,
@@ -659,7 +665,6 @@ const sendLogRequest = function(level, loggerId, sourceFile, sourceLine, sourceF
     if (Params.options.plain_request) {
         request.client_id = Params.connection.client_id;
     }
-    console.log(request);
     Utils.sendRequest(request, Params.logging_socket, false, Params.options.plain_request && Utils.hasFlag(Flag.ALLOW_PLAIN_LOG_REQUEST), Utils.hasFlag(Flag.COMPRESSION));
 }
 
@@ -863,7 +868,12 @@ const getLogger = function(id) {
     return new Logger(id);
 }
 
+const isConnected = function() {
+    return Params.connected;
+}
+
 exports.loadConfiguration = loadConfiguration;
 exports.connect = connect;
 exports.disconnect = disconnect;
 exports.getLogger = getLogger;
+exports.isConnected = isConnected;
