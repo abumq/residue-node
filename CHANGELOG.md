@@ -1,6 +1,8 @@
 # Change Log
 
 ## [Unreleased]
+### Updates
+- Support formatted logging
 
 ## [1.1.5]
 ### Fixes

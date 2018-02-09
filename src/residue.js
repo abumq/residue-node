@@ -21,6 +21,7 @@
 const fs = require('fs');
 const path = require('path');
 const net = require('net');
+const util = require('util');
 const zlib = require('zlib');
 const NodeRSA = require('node-rsa');
 let crypto;
@@ -556,7 +557,7 @@ const getCurrentTimeUTC = function() {
 }
 
 // Send log request to the server. No response is expected
-const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime) {
+const sendLogRequest = function(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime, format, ...args) {
     let datetime = logDatetime;
     if (typeof datetime === 'undefined') {
         datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
@@ -567,7 +568,7 @@ const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceL
     if (Params.connecting) {
        Utils.debugLog('Still connecting...');
        Params.logging_socket_callbacks.push(function() {
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
+            sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
        });
        return;
     }
@@ -577,7 +578,7 @@ const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceL
         if (Params.disconnected_by_remote) {
             Utils.debugLog('Queueing...');
             Params.logging_socket_callbacks.push(function() {
-                 sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
+                 sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
             });
             const totalListener = Params.connection_socket.listenerCount('connect');
             if (totalListener >= 1) {
@@ -595,7 +596,7 @@ const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceL
         Utils.debugLog('Waiting for token for logger [' + loggerId + '], requeueing...');
         Params.token_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from requeued token callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
+            sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
         });
         return;
     }
@@ -606,7 +607,7 @@ const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceL
         Utils.debugLog('Resetting connection...');
         Params.logging_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from log callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
+            sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
         });
         Utils.debugLog('Destroying connection socket');
         Params.connection_socket.destroy();
@@ -621,7 +622,7 @@ const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceL
         Utils.debugLog('Touching first...');
         Params.logging_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from touch callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
+            sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
         });
         touch();
         return;
@@ -631,7 +632,7 @@ const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceL
         Utils.debugLog('Obtaining token first... [' + loggerId + ']');
         Params.token_socket_callbacks.push(function() {
             Utils.debugLog('Sending log from token callback... [' + loggerId + ']');
-            sendLogRequest(logMessage, level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime);
+            sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
         });
         obtainToken(loggerId, null /* means resolve in function */);
         return;
@@ -642,7 +643,7 @@ const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceL
     const request = {
         datetime: datetime,
         logger: loggerId,
-        msg: logMessage,
+        msg: util.format(format, ...args),
         file: sourceFile,
         line: sourceLine,
         func: sourceFunc,
@@ -658,6 +659,7 @@ const sendLogRequest = function(logMessage, level, loggerId, sourceFile, sourceL
     if (Params.options.plain_request) {
         request.client_id = Params.connection.client_id;
     }
+    console.log(request);
     Utils.sendRequest(request, Params.logging_socket, false, Params.options.plain_request && Utils.hasFlag(Flag.ALLOW_PLAIN_LOG_REQUEST), Utils.hasFlag(Flag.COMPRESSION));
 }
 
@@ -826,32 +828,32 @@ const getSourceFunc = function() {
 const Logger = function(id) {
     this.id = id;
 
-    this.info = function(message) {
-        sendLogRequest(message, LoggingLevels.Info, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
+    this.info = function(format, ...args) {
+        sendLogRequest(LoggingLevels.Info, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
     }
 
-    this.error = function(message) {
-        sendLogRequest(message, LoggingLevels.Error, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
+    this.error = function(format, ...args) {
+        sendLogRequest(LoggingLevels.Error, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
     }
 
-    this.debug = function(message) {
-        sendLogRequest(message, LoggingLevels.Debug, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
+    this.debug = function(format, ...args) {
+        sendLogRequest(LoggingLevels.Debug, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
     }
 
-    this.warn = function(message) {
-        sendLogRequest(message, LoggingLevels.Warn, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
+    this.warn = function(format, ...args) {
+        sendLogRequest(LoggingLevels.Warn, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
     }
 
-    this.trace = function(message) {
-        sendLogRequest(message, LoggingLevels.Trace, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
+    this.trace = function(format, ...args) {
+        sendLogRequest(LoggingLevels.Trace, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
     }
 
-    this.fatal = function(message) {
-        sendLogRequest(message, LoggingLevels.Fatal, this.id, getSourceFile(), getSourceLine(), getSourceFunc());
+    this.fatal = function(format, ...args) {
+        sendLogRequest(LoggingLevels.Fatal, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
     }
 
-    this.verbose = function(level, message) {
-        sendLogRequest(message, LoggingLevels.Verbose, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), level);
+    this.verbose = function(level, format, ...args) {
+        sendLogRequest(LoggingLevels.Verbose, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), level, undefined, format, ...args);
     }
 }
 

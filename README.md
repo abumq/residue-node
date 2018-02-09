@@ -17,6 +17,7 @@ This library depends on following native modules, without them library will not 
  * [Crypto Module](https://nodejs.org/api/crypto.html)
  * [ZLib Module](https://nodejs.org/api/zlib.html)
  * [Net Module](https://nodejs.org/api/net.html)
+ * [Util Module](https://nodejs.org/api/util.html)
 
 ## API
 #### `connect(options)`
