@@ -115,27 +115,23 @@ const TOUCH_THRESHOLD = 60; // should always be min(client_age) - max(client_age
 
 // Utility static functions
 const Utils = {
-    log: function(m) {
-        console.log(m);
-    },
+    log: (m) => console.log(m),
 
-    debugLog: function(m) {
+    debugLog: (m) => {
         if (Params.debugging) {
             console.log(m);
         }
     },
 
-    traceLog: function(m) {
-        Utils.debugLog(`TRACE: ${m}`);
-    },
+    traceLog: (m) => Utils.debugLog(`TRACE: ${m}`),
 
-    vLog: function(l, m) {
+    vLog: (l, m) => {
         if (Params.debugging && l <= Params.verboseLevel) {
             console.log(m);
         }
     },
 
-    hasFlag: function(f) {
+    hasFlag: (f) => {
         if (Params.connection === null) {
             return false;
         }
@@ -143,27 +139,19 @@ const Utils = {
     },
 
     // Encode Base64
-    base64Encode: function(str) {
-        return new Buffer(str).toString('base64');
-    },
+    base64Encode: (str) => new Buffer(str).toString('base64'),
 
-    base64Decode: function(encoded) {
-        return new Buffer(encoded, 'base64').toString('utf-8');
-    },
+    base64Decode: (encoded) => new Buffer(encoded, 'base64').toString('utf-8'),
 
     // Get current date in microseconds
-    now: function() {
-        return parseInt((new Date()).getTime() / 1000, 10);
-    },
+    now: () => parseInt((new Date()).getTime() / 1000, 10),
 
-    getTimestamp: function() {
-        return Utils.now();
-    },
+    getTimestamp: () => Utils.now(),
 
     // Send request to the server
     // This function decides whether to back-log the request or dispatch it to
     // the server
-    sendRequest: function(request, socket, nolock /* = false */, sendPlain /* = false */, compress /* = false */) {
+    sendRequest: (request, socket, nolock /* = false */, sendPlain /* = false */, compress /* = false */) => {
         if (typeof nolock === 'undefined') {
             nolock = false;
         }
@@ -213,11 +201,11 @@ const Utils = {
         }
     },
 
-    getCipherAlgorithm: function(keyHex) {
+    getCipherAlgorithm: (keyHex) => {
       return `aes-${(keyHex.length / 2) * 8}-cbc`;
     },
 
-    encrypt: function(request) {
+    encrypt: (request) => {
       let encryptedRequest;
       try {
           let iv = new Buffer(crypto.randomBytes(16), 'hex');
@@ -230,7 +218,7 @@ const Utils = {
     },
 
     // Decrypt response from the server using symmetric key
-    decrypt: function(data) {
+    decrypt: (data) => {
         if (Params.connection === null) {
             return null;
         }
@@ -257,12 +245,12 @@ const Utils = {
         return null;
     },
 
-    extractPublicKey: function(privateKey) {
+    extractPublicKey: (privateKey) => {
         const key = new NodeRSA(privateKey.key);
         return key.exportKey('public');
     },
 
-    generateKeypair: function(keySize) {
+    generateKeypair: (keySize) => {
         const key = new NodeRSA({b: keySize});
         key.setOptions({encryptionScheme: 'pkcs1'});
         Utils.debugLog('Key generated');
@@ -273,7 +261,7 @@ const Utils = {
     },
 
     // Decrypt response from the server using asymetric key
-    decryptRSA: function(response, privateKey) {
+    decryptRSA: (response, privateKey) => {
         try {
             return crypto.privateDecrypt(privateKey, new Buffer(response.toString(), 'base64')).toString('utf-8');
         } catch (err) {
@@ -283,7 +271,7 @@ const Utils = {
     },
 
     // Encrypts string using key
-    encryptRSA: function(str, publicKey) {
+    encryptRSA: (str, publicKey) => {
         try {
             return crypto.publicEncrypt(publicKey, new Buffer(str, 'utf-8')).toString('base64');
         } catch (err) {
@@ -294,7 +282,7 @@ const Utils = {
 };
 
 // Handle response from the server on connection requests
-Params.connection_socket.on('data', function(data) {
+Params.connection_socket.on('data', (data) => {
     let decryptedData = Utils.decrypt(data.toString());
     if (decryptedData === null) {
         decryptedData = Utils.decryptRSA(data, Params.rsa_key.privateKey);
@@ -369,7 +357,7 @@ Params.connection_socket.on('data', function(data) {
 });
 
 // Handle when connection is destroyed
-Params.connection_socket.on('close', function() {
+Params.connection_socket.on('close', () => {
     Utils.log('Remote connection closed!');
     if (Params.connected) {
         Params.disconnected_by_remote = true;
@@ -377,14 +365,14 @@ Params.connection_socket.on('close', function() {
     disconnect();
 });
 
-Params.connection_socket.on('error', function(error) {
+Params.connection_socket.on('error', (error) => {
     Utils.log('Error occurred while connecting to residue server');
     Utils.log(error);
 });
 
 
 // Handle response for tokens, this stores tokens in to Params.tokens
-Params.token_socket.on('data', function(data) {
+Params.token_socket.on('data', (data) => {
     let decryptedData = Utils.decrypt(data.toString());
     if (decryptedData === null) {
         Utils.log('Unable to read response: ' + data);
@@ -421,23 +409,23 @@ Params.token_socket.on('data', function(data) {
 });
 
 // Handles destruction of connection to token server
-Params.token_socket.on('close', function() {
+Params.token_socket.on('close', () => {
     Params.token_socket_connected = false;
 });
 
 // Handle destruction of connection to logging server
-Params.logging_socket.on('close', function() {
+Params.logging_socket.on('close', () => {
     Params.logging_socket_connected = false;
 });
 
 
 // Notice we do not have any handler for logging_socket response
 // this is because that is async connection
-Params.logging_socket.on('data', function(data) {
+Params.logging_socket.on('data', (data) => {
 });
 
 // Obtain token for the logger that requires token
-const obtainToken = function(loggerId, accessCode) {
+const obtainToken = (loggerId, accessCode) => {
     if (!Params.token_socket_connected) {
         Utils.log('Not connected to the token server yet');
         return;
@@ -452,7 +440,7 @@ const obtainToken = function(loggerId, accessCode) {
         // Get from map (recursive)
         if (typeof Params.options.access_codes !== 'undefined') {
             let found = false;
-            Params.options.access_codes.forEach(function(item) {
+            Params.options.access_codes.forEach((item) => {
                 if (item.logger_id === loggerId && typeof item.code !== 'undefined' && item.code.length !== 0) {
                     Utils.debugLog('Found access code');
                     found = true;
@@ -495,7 +483,7 @@ const obtainToken = function(loggerId, accessCode) {
     Utils.sendRequest(request, Params.token_socket);
 }
 
-const shouldTouch = function() {
+const shouldTouch = () => {
     if (!Params.connected || Params.connecting) {
         // Can't touch 
         return false;
@@ -507,7 +495,7 @@ const shouldTouch = function() {
     return Params.connection.age - (Utils.now() - Params.connection.date_created) < TOUCH_THRESHOLD;
 }
 
-const touch = function() {
+const touch = () => {
     if (Params.connected) {
         if (Params.connecting) {
            Utils.debugLog('Still touching...');
@@ -528,7 +516,7 @@ const touch = function() {
     }
 }
 
-const isClientValid = function() {
+const isClientValid = () => {
     if (!Params.connected) {
         return false;
     }
@@ -538,11 +526,11 @@ const isClientValid = function() {
     return Params.connection.date_created + Params.connection.age >= Utils.now();
 }
 
-const getToken = function(loggerId) {
+const getToken = (loggerId) => {
     return typeof Params.tokens[loggerId] === 'undefined' ? '' : Params.tokens[loggerId].token;
 }
 
-const hasValidToken = function(loggerId) {
+const hasValidToken = (loggerId) => {
     if (!Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
         return true;
     }
@@ -551,13 +539,13 @@ const hasValidToken = function(loggerId) {
 }
 
 // Returns UTC time
-const getCurrentTimeUTC = function() {
+const getCurrentTimeUTC = () => {
     const newDate = new Date();
     return newDate.getTime() + newDate.getTimezoneOffset() * 60000;
 }
 
 // Send log request to the server. No response is expected
-const sendLogRequest = function(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime, format, ...args) {
+const sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime, format, ...args) => {
     let datetime = logDatetime;
     if (typeof datetime === 'undefined') {
         datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
@@ -567,7 +555,7 @@ const sendLogRequest = function(level, loggerId, sourceFile, sourceLine, sourceF
     }
     if (Params.connecting) {
        Utils.debugLog('Still connecting...');
-       Params.logging_socket_callbacks.push(function() {
+       Params.logging_socket_callbacks.push(() => {
             sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
        });
        return;
@@ -577,7 +565,7 @@ const sendLogRequest = function(level, loggerId, sourceFile, sourceLine, sourceF
         Utils.log('Not connected to the server yet');
         if (Params.disconnected_by_remote) {
             Utils.debugLog('Queueing...');
-            Params.logging_socket_callbacks.push(function() {
+            Params.logging_socket_callbacks.push(() => {
                  sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
             });
             const totalListener = Params.connection_socket.listenerCount('connect');
@@ -605,7 +593,7 @@ const sendLogRequest = function(level, loggerId, sourceFile, sourceLine, sourceF
 
     if (!isClientValid()) {
         Utils.debugLog('Resetting connection...');
-        Params.logging_socket_callbacks.push(function() {
+        Params.logging_socket_callbacks.push(() => {
             Utils.debugLog('Sending log from log callback... [' + loggerId + ']');
             sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
         });
@@ -620,7 +608,7 @@ const sendLogRequest = function(level, loggerId, sourceFile, sourceLine, sourceF
 
     if (shouldTouch()) {
         Utils.debugLog('Touching first...');
-        Params.logging_socket_callbacks.push(function() {
+        Params.logging_socket_callbacks.push(() => {
             Utils.debugLog('Sending log from touch callback... [' + loggerId + ']');
             sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
         });
@@ -630,7 +618,7 @@ const sendLogRequest = function(level, loggerId, sourceFile, sourceLine, sourceF
 
     if (!hasValidToken(loggerId)) {
         Utils.debugLog('Obtaining token first... [' + loggerId + ']');
-        Params.token_socket_callbacks.push(function() {
+        Params.token_socket_callbacks.push(() => {
             Utils.debugLog('Sending log from token callback... [' + loggerId + ']');
             sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
         });
@@ -668,12 +656,12 @@ const sendLogRequest = function(level, loggerId, sourceFile, sourceLine, sourceF
     Utils.sendRequest(request, Params.logging_socket, false, Params.options.plain_request && Utils.hasFlag(Flag.ALLOW_PLAIN_LOG_REQUEST), Utils.hasFlag(Flag.COMPRESSION));
 }
 
-const isNormalInteger = function(str) {
+const isNormalInteger = (str) => {
     var n = Math.floor(Number(str));
     return String(n) === str && n >= 0;
 }
 
-const loadConfiguration = function(jsonFilename) {
+const loadConfiguration = (jsonFilename) => {
     if (typeof jsonFilename === 'undefined') {
         Utils.log('Please select JSON filename that contains configurations');
         return false;
@@ -684,7 +672,7 @@ const loadConfiguration = function(jsonFilename) {
 }
 
 // Securily connect to residue server using defined options
-const connect = function(options) {
+const connect = (options) => {
     if (Params.connected && Params.connection !== null) {
         Utils.log('Already connected to the server with ID [' + Params.connection.client_id + ']')
         return;
@@ -751,7 +739,7 @@ const connect = function(options) {
             };
         }
         Utils.log('Intializing connection...');
-        Params.connection_socket.connect(Params.options.connect_port, Params.options.host, function() {
+        Params.connection_socket.connect(Params.options.connect_port, Params.options.host, () => {
             let request = {
                 _t: Utils.getTimestamp(),
                 type: ConnectType.Connect,
@@ -776,7 +764,7 @@ const connect = function(options) {
 }
 
 // Disconnect from the server safely.
-const disconnect = function() {
+const disconnect = () => {
     Utils.traceLog('disconnect()');
     Params.tokens = [];
     Params.token_request_queue = [];
@@ -803,25 +791,19 @@ const disconnect = function() {
 }
 
 // Get location of callstack in <file>:<line> format
-const getSourceLocation = function(splitChar) {
-    return (new Error).stack.split('\n')[4].replace(' at ', '').trim().split(splitChar);
-}
+const getSourceLocation = (splitChar) => (new Error).stack.split('\n')[4].replace(' at ', '').trim().split(splitChar);
 
 // Get file of callstack.
 // See getSourceLocation
-const getSourceFile = function() {
-    return getSourceLocation(':')[0];
-}
+const getSourceFile = () => getSourceLocation(':')[0];
 
 // Get line of callstack.
 // See getSourceLocation
-const getSourceLine = function() {
-    return parseInt(getSourceLocation(':')[1]);
-}
+const getSourceLine = () => parseInt(getSourceLocation(':')[1]);
 
 // Get func of call stack
 // See getSourceLocation
-const getSourceFunc = function() {
+const getSourceFunc = () => {
     const parts = getSourceLocation(' ');
     if (parts.length <= 1) {
         return 'anonymous';
@@ -833,44 +815,26 @@ const getSourceFunc = function() {
 const Logger = function(id) {
     this.id = id;
 
-    this.info = function(format, ...args) {
-        sendLogRequest(LoggingLevels.Info, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
-    }
+    this.info = (format, ...args) => sendLogRequest(LoggingLevels.Info, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
 
-    this.error = function(format, ...args) {
-        sendLogRequest(LoggingLevels.Error, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
-    }
+    this.error = (format, ...args) => sendLogRequest(LoggingLevels.Error, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
 
-    this.debug = function(format, ...args) {
-        sendLogRequest(LoggingLevels.Debug, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
-    }
+    this.debug = (format, ...args) => sendLogRequest(LoggingLevels.Debug, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
 
-    this.warn = function(format, ...args) {
-        sendLogRequest(LoggingLevels.Warn, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
-    }
+    this.warn = (format, ...args) => sendLogRequest(LoggingLevels.Warn, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
 
-    this.trace = function(format, ...args) {
-        sendLogRequest(LoggingLevels.Trace, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
-    }
+    this.trace = (format, ...args) => sendLogRequest(LoggingLevels.Trace, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
 
-    this.fatal = function(format, ...args) {
-        sendLogRequest(LoggingLevels.Fatal, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
-    }
+    this.fatal = (format, ...args) => sendLogRequest(LoggingLevels.Fatal, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
 
-    this.verbose = function(level, format, ...args) {
-        sendLogRequest(LoggingLevels.Verbose, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), level, undefined, format, ...args);
-    }
+    this.verbose = (level, format, ...args) => sendLogRequest(LoggingLevels.Verbose, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), level, undefined, format, ...args);
 }
 
 // Get new logger with provided ID for writing logs
 // Make sure you have provided us with corresponding access code for seamless connection if needed.
-const getLogger = function(id) {
-    return new Logger(id);
-}
+const getLogger = (id) => (new Logger(id));
 
-const isConnected = function() {
-    return Params.connected;
-}
+const isConnected = () => Params.connected;
 
 exports.loadConfiguration = loadConfiguration;
 exports.connect = connect;
