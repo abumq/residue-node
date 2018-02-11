@@ -11,6 +11,23 @@ folders and open files.
 * [util module](http://nodejs.org/api/util.html)
 * [child_process module](http://nodejs.org/api/child_process.html)
 
+## Getting Started
+This adds residue-node support to the app. 
+
+Make sure you have electron installed
+
+```
+npm install -g electron
+```
+
+Simply run (this logs to `localhost:8777` residue server so make sure the server is running before start the sample)
+
+```
+cd file-explorer
+electron .
+```
+
 ## Screenshot
 
 ![screenshot](/samples/electron/file-explorer/screenshot/screenshot.png)
+

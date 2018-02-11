@@ -1,6 +1,6 @@
 {
-  "name": "file-explorer-demo",
-  "version": "1.1.1",
+  "name": "residue-electron-demo",
+  "version": "1.0.0",
   "main": "main.js",
   "dependencies": {
     "residue": "^1.2.1"

@@ -6,6 +6,7 @@ let mainWindow;
 const residue = require('residue');
 
 global.residue = residue;
+global.logger = residue.getLogger("sample-app");
 
 const confFile = '../../server/client.conf.json';
 
