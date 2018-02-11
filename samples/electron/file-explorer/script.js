@@ -3,8 +3,7 @@ global.$ = $;
 const {remote} = require('electron');
 const {Menu, BrowserWindow, MenuItem, shell} = remote;
 
-const residue = remote.getGlobal('residue');
-var logger = residue.getLogger('sample-app'); // or register it in main.js and get logger here only
+const logger = remote.getGlobal('logger');
 
 var abar = require('address_bar');
 var folder_view = require('folder_view');
@@ -42,6 +41,7 @@ var App = {
     anchor.find('i').addClass('icon-white');
 
     this.setPath(anchor.attr('nw-path'));
+    logger.info("Opening folder from sidebar %s", anchor.attr('nw-path'));
   },
 
   // set path for file explorer
@@ -55,10 +55,6 @@ var App = {
 };
 
 $(document).ready(function() {
-/*    if (residue.loadConfiguration(confFile)) {
-        residue.connect();
-    }
-*/
   initMenu();
 
   var folder = new folder_view.Folder($('#files'));
@@ -72,15 +68,16 @@ $(document).ready(function() {
 
   folder.on('navigate', function(dir, mime) {
     if (mime.type == 'folder') {
+      logger.info("Opening dir %s", dir);
       addressbar.enter(mime);
     } else {
+      logger.info("Opening item of %s type", mime.path);
       shell.openItem(mime.path);
     }
   });
 
   addressbar.on('navigate', function(dir) {
-    logger.info("Opening dir");
-    console.log("Opening dir...");
+    logger.info("Opening dir %s", dir);
     folder.open(dir);
   });
 
