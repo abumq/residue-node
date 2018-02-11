@@ -1,5 +1,8 @@
 # Change Log
 
+## [Unreleased]
+ - Included folders updated
+
 ## [1.2.0]
 ### Updates
 - Support formatted logging
