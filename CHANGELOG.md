@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.2.3]
+ - `loadConfiguration` now accepts object
+
 ## [1.2.1]
  - Included folders updated
 
