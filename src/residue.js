@@ -661,12 +661,12 @@ const isNormalInteger = (str) => {
     return String(n) === str && n >= 0;
 }
 
-const loadConfiguration = (jsonFilename) => {
-    if (typeof jsonFilename === 'undefined') {
-        Utils.log('Please select JSON filename that contains configurations');
+const loadConfiguration = (jsonOrFilename) => {
+    if (typeof jsonOrFilename === 'undefined') {
+        Utils.log('Please select JSON or JSON filename that contains configurations');
         return false;
     }
-    Params.options = JSON.parse(fs.readFileSync(path.resolve(jsonFilename), 'utf8'));
+    Params.options = typeof jsonOrFilename === 'object' ? jsonOrFilename : JSON.parse(fs.readFileSync(path.resolve(jsonOrFilename), 'utf8'));
     Utils.log('Configuration loaded');
     return true;
 }
