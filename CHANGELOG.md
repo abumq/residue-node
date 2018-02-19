@@ -1,6 +1,6 @@
 # Change Log
 
-## [1.2.3]
+## [1.2.4]
  - `loadConfiguration` now accepts object
 
 ## [1.2.1]

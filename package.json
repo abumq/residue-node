@@ -1,6 +1,6 @@
 {
   "name": "residue",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Library to interact with residue server seamlessly.",
   "main": "src/residue.js",
   "scripts": {
@@ -23,7 +23,7 @@
     "easylogging",
     "easylogging++"
   ],
-  "author": "Muflihun Labs <info@muflihun.com> (https://muflihun.com/)",
+  "author": "Muflihun Labs <info@muflihun.com>",
   "license": "Apache-2.0",
   "bugs": {
     "url": "https://github.com/muflihun/residue-node/issues"
