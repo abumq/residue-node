@@ -104,7 +104,6 @@ const Flag = {
   ALLOW_UNKNOWN_LOGGERS: 1,
   REQUIRES_TOKEN: 2,
   ALLOW_DEFAULT_ACCESS_CODE: 4,
-  ALLOW_PLAIN_LOG_REQUEST: 8,
   ALLOW_BULK_LOG_REQUEST: 16,
   COMPRESSION: 256
 };
@@ -151,12 +150,9 @@ const Utils = {
     // Send request to the server
     // This function decides whether to back-log the request or dispatch it to
     // the server
-    sendRequest: (request, socket, nolock /* = false */, sendPlain /* = false */, compress /* = false */) => {
+    sendRequest: (request, socket, nolock /* = false */, compress /* = false */) => {
         if (typeof nolock === 'undefined') {
             nolock = false;
-        }
-        if (typeof sendPlain === 'undefined') {
-            sendPlain = false;
         }
         if (typeof compress === 'undefined') {
             compress = false;
@@ -164,7 +160,7 @@ const Utils = {
         if (!nolock && Params.locks[socket.address().port]) {
             Params.send_request_backlog_callbacks.push(function() {
                 Utils.debugLog('Sending request via callback');
-                Utils.sendRequest(request, socket, false, sendPlain, compress);
+                Utils.sendRequest(request, socket, false, compress);
             });
             return;
         }
@@ -172,12 +168,7 @@ const Utils = {
         if (compress) {
             finalRequest = new Buffer(zlib.deflateSync(finalRequest)).toString('base64');
         }
-        let encryptedRequest;
-        if (!sendPlain) {
-            encryptedRequest = Utils.encrypt(finalRequest);
-        } else {
-            encryptedRequest = finalRequest + PACKET_DELIMITER;
-        }
+        const encryptedRequest = Utils.encrypt(finalRequest);
         Utils.vLog(9, 'Payload (Plain): ' + encryptedRequest);
         Utils.vLog(8, 'Locking ' + socket.address().port);
         Params.locks[socket.address().port] = true;
@@ -650,10 +641,7 @@ const sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, ver
     if (typeof verboseLevel !== 'undefined') {
         request.vlevel = verboseLevel;
     }
-    if (Params.options.plain_request) {
-        request.client_id = Params.connection.client_id;
-    }
-    Utils.sendRequest(request, Params.logging_socket, false, Params.options.plain_request && Utils.hasFlag(Flag.ALLOW_PLAIN_LOG_REQUEST), Utils.hasFlag(Flag.COMPRESSION));
+    Utils.sendRequest(request, Params.logging_socket, false, Utils.hasFlag(Flag.COMPRESSION));
 }
 
 const isNormalInteger = (str) => {

@@ -1,5 +1,8 @@
 # Change Log
 
+## [1.2.5]
+- Removed plain request
+
 ## [1.2.4]
  - `loadConfiguration` now accepts object
 
