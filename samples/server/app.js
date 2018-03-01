@@ -34,6 +34,7 @@ app.get('/', function (req, res) {
 	//defaultLogger.info('info default logger');
 	//defaultLogger.verbose(3, 'verbose using default logger');
     logger.info('%s this is best %d:%s', [1, 2, 3], 123, "test");
+    logger.info('Second %s', "test");
     //namedFunc();
     res.send('Hello World!');
 });

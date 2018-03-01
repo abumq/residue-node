@@ -1,5 +1,8 @@
 # Change Log
 
+## [Unreleased]
+ - Compatibility for server 2.0.0
+
 ## [1.2.3]
  - `loadConfiguration` now accepts object
 
