@@ -5,8 +5,8 @@
 //
 // This module provides interface for connecting and interacting with
 // residue server seamlessly. Once you are connected this module
-// takes care of lost connections, expired tokens, expired clients
-// and keep itself updated with latest tokens and touch server when 
+// takes care of lost connections, expired clients
+// and keep itself updated with parameters and touch server when 
 // needed to stay alive.
 //
 // Author: @abumusamq
@@ -33,11 +33,11 @@ try {
 
 const Params = {
     // user provided options for seamless connection
-    //   app, host, connect_port, access_codes
+    //   app, host, connect_port
     options: {},
 
     // connecting object containing:
-    //   client_id, age, date_created, key, logging_port, token_port
+    //   client_id, age, date_created, key, logging_port
     connection: null,
 
     // rsa_key is keypair object
@@ -49,12 +49,8 @@ const Params = {
     // whether connected to the server or not
     connected: false,
 
-    // list of tokens currently available
-    tokens: [],
-
     // Underlying sockets
     connection_socket: new net.Socket(),
-    token_socket: new net.Socket(),
     logging_socket: new net.Socket(),
 
     // Debug logging
@@ -62,22 +58,18 @@ const Params = {
     verboseLevel: 0,
 
     // Status for sockets
-    token_socket_connected: false,
     logging_socket_connected: false,
 
     // callbacks on specific occasions
     send_request_backlog_callbacks: [],
     logging_socket_callbacks: [],
-    token_socket_callbacks: [],
     
     // locks for mutex
     locks: {},
     
-    token_request_queue: [],
 };
 
 Params.locks[Params.connection_socket.address().port] = false;
-Params.locks[Params.token_socket.address().port] = false;
 Params.locks[Params.logging_socket.address().port] = false;
 
 
@@ -102,14 +94,11 @@ const LoggingLevels = {
 const Flag = {
   NONE: 0,
   ALLOW_UNKNOWN_LOGGERS: 1,
-  REQUIRES_TOKEN: 2,
-  ALLOW_DEFAULT_ACCESS_CODE: 4,
   ALLOW_BULK_LOG_REQUEST: 16,
   COMPRESSION: 256
 };
 
 const PACKET_DELIMITER = '\r\n\r\n';
-const DEFAULT_ACCESS_CODE = 'default';
 const TOUCH_THRESHOLD = 60; // should always be min(client_age) - max(client_age/2)
 
 // Utility static functions
@@ -304,22 +293,6 @@ Params.connection_socket.on('data', (data) => {
         Params.connection = dataJson;
         Params.connected = true;
         Utils.vLog(8, `Connection socket: ${Params.connection_socket.address().port}`);
-        if (typeof Params.options.access_codes === 'object') {
-            if (!Params.token_socket_connected) {
-                Params.token_socket.connect(Params.connection.token_port, Params.options.host, function() {
-                    Params.token_socket_connected = true;
-                    Utils.vLog(8, `Token socket: ${Params.token_socket.address().port}`);
-                    if (Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
-                        Utils.debugLog('Obtaining tokens...');
-                        Params.options.access_codes.forEach(function(item) {
-                            obtainToken(item.logger_id, item.code);
-                        });
-                    }
-                });
-            }
-        } else {
-            Utils.log('MISSING: access_codes: ' + (typeof Params.options.access_codes));
-        }
         if (!Params.logging_socket_connected) {
             Params.logging_socket.connect(Params.connection.logging_port, Params.options.host, function() {
                 Utils.log(`Connected to Residue (v${Params.connection.server_info.version})!`);
@@ -362,48 +335,6 @@ Params.connection_socket.on('error', (error) => {
 });
 
 
-// Handle response for tokens, this stores tokens in to Params.tokens
-Params.token_socket.on('data', (data) => {
-    let decryptedData = Utils.decrypt(data.toString());
-    if (decryptedData === null) {
-        Utils.log('Unable to read response: ' + data);
-        return;
-    }
-    Utils.debugLog(decryptedData.toString());
-    try {
-        const dataJson = JSON.parse(decryptedData.toString());
-        Utils.vLog(7, 'Decoded json successfully');
-        if (dataJson.status === 0) {
-            dataJson.dateCreated = Utils.now();
-            Params.tokens[dataJson.loggerId] = dataJson;
-            const queuePos = Params.token_request_queue.indexOf(dataJson.loggerId);
-            if (queuePos !== -1) {
-                Params.token_request_queue.splice(queuePos, 1);
-            }
-            Utils.vLog(8, 'New token: ');
-            Utils.vLog(8, dataJson);
-            const callbacksCount = Params.token_socket_callbacks.length;
-            Utils.debugLog('Token callbacks: ' + callbacksCount);
-            for (let idx = 0; idx < callbacksCount; ++idx) {
-                Utils.debugLog('Token callback()');
-                const cb = Params.token_socket_callbacks.splice(0, 1)[0];
-                cb();
-                Utils.debugLog('Done Token callback()');
-            }
-        } else {
-            Utils.log('Error while obtaining token: ' + dataJson.error_text);
-        }
-    } catch (e) {
-        Utils.log('Exception while obtaining token: ');
-        Utils.log(e);
-    }
-});
-
-// Handles destruction of connection to token server
-Params.token_socket.on('close', () => {
-    Params.token_socket_connected = false;
-});
-
 // Handle destruction of connection to logging server
 Params.logging_socket.on('close', () => {
     Params.logging_socket_connected = false;
@@ -414,65 +345,6 @@ Params.logging_socket.on('close', () => {
 // this is because that is async connection
 Params.logging_socket.on('data', (data) => {
 });
-
-// Obtain token for the logger that requires token
-const obtainToken = (loggerId, accessCode) => {
-    if (!Params.token_socket_connected) {
-        Utils.log('Not connected to the token server yet');
-        return;
-    }
-
-    if (Params.token_request_queue.indexOf(loggerId) !== -1) {
-        Utils.debugLog('Token already requested for [' + loggerId + ']');
-        return;
-    }
-    Utils.debugLog('obtainToken(' + loggerId + ', ' + accessCode + ')');
-    if (accessCode === null) {
-        // Get from map (recursive)
-        if (typeof Params.options.access_codes !== 'undefined') {
-            let found = false;
-            Params.options.access_codes.forEach((item) => {
-                if (item.logger_id === loggerId && typeof item.code !== 'undefined' && item.code.length !== 0) {
-                    Utils.debugLog('Found access code');
-                    found = true;
-                    accessCode = item.code;
-                    return;
-                }
-            });
-            if (!found) {
-                if (Utils.hasFlag(Flag.ALLOW_DEFAULT_ACCESS_CODE)) {
-                    Utils.debugLog('Trying to get token with default access code');
-                    // try without access code
-                    obtainToken(loggerId, DEFAULT_ACCESS_CODE);
-                } else {
-                    Utils.log('ERROR: Access code for logger [' + loggerId + '] not provided. Loggers without access code are not allowed by the server.');
-                    return;
-                }
-            }
-        } else {
-            if (Utils.hasFlag(Flag.ALLOW_DEFAULT_ACCESS_CODE)) {
-                Utils.debugLog('Trying to get token with default access code');
-                accessCode = DEFAULT_ACCESS_CODE;
-            } else {
-                Utils.log('ERROR: Loggers without access code are not allowed by the server');
-                return;
-            }
-        }
-    }
-    if (accessCode === null) {
-        // last hope!
-        Utils.debugLog('Forcing default access code');
-        accessCode = DEFAULT_ACCESS_CODE;
-    }
-    Utils.debugLog('Obtaining token for [' + loggerId + '] with access code [' + accessCode + ']');
-    const request = {
-        _t: Utils.getTimestamp(),
-        logger_id: loggerId,
-        access_code: accessCode
-    };
-    Params.token_request_queue.push(loggerId);
-    Utils.sendRequest(request, Params.token_socket);
-}
 
 const shouldTouch = () => {
     if (!Params.connected || Params.connecting) {
@@ -517,18 +389,6 @@ const isClientValid = () => {
     return Params.connection.date_created + Params.connection.age >= Utils.now();
 }
 
-const getToken = (loggerId) => {
-    return typeof Params.tokens[loggerId] === 'undefined' ? '' : Params.tokens[loggerId].token;
-}
-
-const hasValidToken = (loggerId) => {
-    if (!Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
-        return true;
-    }
-    let t = Params.tokens[loggerId];
-    return typeof t !== 'undefined' && (t.life === 0 || Utils.now() - t.dateCreated < t.life);
-}
-
 // Returns UTC time
 const getCurrentTimeUTC = () => {
     const newDate = new Date();
@@ -571,15 +431,6 @@ const sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, ver
         return;
     }
 
-    if (Params.token_request_queue.indexOf(loggerId) !== -1) {
-        Utils.debugLog('Waiting for token for logger [' + loggerId + '], requeueing...');
-        Params.token_socket_callbacks.push(function() {
-            Utils.debugLog('Sending log from requeued token callback... [' + loggerId + ']');
-            sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
-        });
-        return;
-    }
-
     Utils.debugLog('Checking health...[' + loggerId + ']');
 
     if (!isClientValid()) {
@@ -590,7 +441,6 @@ const sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, ver
         });
         Utils.debugLog('Destroying connection socket');
         Params.connection_socket.destroy();
-        Params.token_socket.destroy();
         Params.logging_socket.destroy();
         disconnect();
         connect(Params.options);
@@ -607,16 +457,6 @@ const sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, ver
         return;
     }
 
-    if (!hasValidToken(loggerId)) {
-        Utils.debugLog('Obtaining token first... [' + loggerId + ']');
-        Params.token_socket_callbacks.push(() => {
-            Utils.debugLog('Sending log from token callback... [' + loggerId + ']');
-            sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
-        });
-        obtainToken(loggerId, null /* means resolve in function */);
-        return;
-    }
-
     Utils.debugLog('Sending log request [' + loggerId  + ']...');
 
     const cpy = args;
@@ -626,6 +466,7 @@ const sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, ver
         }
     }
     const request = {
+        _t: Utils.getTimestamp(),
         datetime: datetime,
         logger: loggerId,
         msg: util.format(format, ...cpy),
@@ -635,9 +476,6 @@ const sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, ver
         app: Params.options.application_id,
         level: level,
     };
-    if (Utils.hasFlag(Flag.REQUIRES_TOKEN)) {
-        request.token = getToken(loggerId);
-    }
     if (typeof verboseLevel !== 'undefined') {
         request.vlevel = verboseLevel;
     }
@@ -754,18 +592,14 @@ const connect = (options) => {
 // Disconnect from the server safely.
 const disconnect = () => {
     Utils.traceLog('disconnect()');
-    Params.tokens = [];
-    Params.token_request_queue = [];
     Params.connected = false;
     Params.connecting = false;
     Params.connection = null;
-    Params.token_socket_connected = false;
     Params.logging_socket_connected = false;
     if (Params.connected) {
         try {
             if (Params.connection_socket.destroyed) {
                 Utils.log('Disconnecting gracefully...');
-                Params.token_socket.end();
                 Params.logging_socket.end();
             } else {
                 Utils.log('Disconnecting...');
@@ -819,7 +653,6 @@ const Logger = function(id) {
 }
 
 // Get new logger with provided ID for writing logs
-// Make sure you have provided us with corresponding access code for seamless connection if needed.
 const getLogger = (id) => (new Logger(id));
 
 const isConnected = () => Params.connected;

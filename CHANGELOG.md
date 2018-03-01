@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.0.1]
+- Compatibility with server 2.0.0
+
 ## [1.2.5]
 - Removed plain request
 
