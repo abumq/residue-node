@@ -1,6 +1,6 @@
 # Change Log
 
-## [Unreleased]
+## [2.0.0] - 01-03-2018
  - Compatibility for server 2.0.0
 
 ## [1.2.3]
