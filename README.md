@@ -29,11 +29,6 @@ Valid options are:
 ```
 {
     url: "<host_where_residue_server_is_listening>:<residue_connection_port>",
-    access_codes: [
-        {
-             ... logger_id and code
-        }
-    ],
     application_id: <app_name [optional]>,
     rsa_key_size: <key_size_for_initial_final_key_transmission [optional]>,
     utc_time: <whether_to_use_UTC_time [optional]>,
