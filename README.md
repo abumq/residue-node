@@ -36,7 +36,7 @@ Valid options are:
     client_id: <client_id_that_server_knows_you_as [optional]>,
     client_private_key: <full_path_of_private_key> [must be provided with client_id],
     client_public_key: <full_path_of_public_key> [must be provided with client_id],
-    client_key_secret: <secret (passphrase) for encrypted private key if any>,
+    client_key_secret: <base16 encoded secret (passphrase) for encrypted private key if any>,
     server_public_key: <full_path_of_server_public_key>
 }
 ```
@@ -60,6 +60,11 @@ const confFile = 'client.conf.json';
 if (residue.loadConfiguration(confFile)) {
     residue.connect();
 }
+
+// ALTERNATIVELY
+residue.connect({
+    url: ...
+});
 
 logger.info('simple log');
 

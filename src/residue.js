@@ -538,7 +538,8 @@ const connect = (options) => {
                 generated: false,
                 privateKey: {
                     key: fs.readFileSync(path.resolve(Params.options.client_private_key)).toString(),
-                    passphrase: Params.options.client_key_secret || null,
+                    passphrase: Params.options.client_key_secret
+                        ? new Buffer(Params.options.client_key_secret, 'hex').toString('utf-8') : null,
                     padding: crypto.constants.RSA_PKCS1_PADDING,
                 },
                 publicKey: {

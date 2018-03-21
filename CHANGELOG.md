@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.1.0]
+- Private key uses hex
+
 ## [2.0.1]
 - Compatibility with server 2.0.0
 
