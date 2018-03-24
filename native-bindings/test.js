@@ -14,6 +14,7 @@ logger.info("blah");
 function a_fn()
 {
     logger.debug('a debug log in func %s', 'with string fmt');
+    logger.verbose(5, 'a verbose log in func, verbose level: %d', 5);
 }
 
 logger.debug('a debug log %s', 'with string fmt');

@@ -2,19 +2,12 @@
 const util = require('util');
 const residue_native = require('./build/Release/residue_native');
 
-// Get location of callstack in <file>:<line> format
 const getSourceLocation = (splitChar) => (new Error).stack.split('\n')[5].replace(' at ', '').trim().split(splitChar);
 
-// Get file of callstack.
-// See getSourceLocation
 const getSourceFile = () => getSourceLocation(':')[0];
 
-// Get line of callstack.
-// See getSourceLocation
 const getSourceLine = () => parseInt(getSourceLocation(':')[1]);
 
-// Get func of call stack
-// See getSourceLocation
 const getSourceFunc = () => {
     const parts = getSourceLocation(' ');
     if (parts.length <= 1) {
@@ -41,15 +34,31 @@ const Logger = function(id) {
     this.id = id;
 
     this.info = (fmt, ...args) => {
-        this._send_log_msg(residue_native.info, fmt, ...args);
+        this._send_log_msg(residue_native.info, undefined, fmt, ...args);
+    }
+
+    this.error = (fmt, ...args) => {
+        this._send_log_msg(residue_native.error, undefined, fmt, ...args);
     }
 
     this.debug = (fmt, ...args) => {
-        this._send_log_msg(residue_native.debug, fmt, ...args);
+        this._send_log_msg(residue_native.debug, undefined, fmt, ...args);
+    }
+
+    this.warning = (fmt, ...args) => {
+        this._send_log_msg(residue_native.warning, undefined, fmt, ...args);
+    }
+
+    this.trace = (fmt, ...args) => {
+        this._send_log_msg(residue_native.trace, undefined, fmt, ...args);
+    }
+
+    this.verbose = (vlevel, fmt, ...args) => {
+        this._send_log_msg(residue_native.verbose, vlevel, fmt, ...args);
     }
 
     // private
-    this._send_log_msg = (fn, fmt, ...args) => {
+    this._send_log_msg = (fn, vlevel, fmt, ...args) => {
         const cpy = args;
         for (var idx = 0; idx < cpy.length; ++idx) {
             if (typeof cpy[idx] === 'object') {
@@ -57,7 +66,7 @@ const Logger = function(id) {
             }
         }
 
-        fn(this.id, getSourceFile(), getSourceLine(), getSourceFunc(), util.format(fmt, ...cpy));
+        fn(this.id, getSourceFile(), getSourceLine(), getSourceFunc(), util.format(fmt, ...cpy), vlevel);
     }
 };
 
