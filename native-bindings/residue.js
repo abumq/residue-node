@@ -1,8 +1,12 @@
-const residuenative = require('./build/Release/residuenative');
+const residue_native = require('./build/Release/residue_native');
 
 const Residue = function() {
+    this.version = () => {
+        return residue_native.version();
+    }
+
     this.connect = (json) => {
-        residuenative.connect(json);
+        residue_native.connect(json);
     }
 };
 
