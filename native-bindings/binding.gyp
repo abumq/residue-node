@@ -5,7 +5,12 @@
       "sources": [
         "residue_native.cc"
       ],
-      "libraries": [ "/usr/local/lib/libresidue-static.a" ],
+      "libraries": [
+        "-lresidue-static"
+      ],
+      "defines": [
+        "ELPP_THREAD_SAFE"
+      ],
       "include_dirs": ["<!(node -e \"require('nan')\")"]
     }
   ]
