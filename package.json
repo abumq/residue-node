@@ -1,6 +1,6 @@
 {
   "name": "residue",
-  "version": "2.1.5",
+  "version": "2.1.7",
   "description": "Library to interact with residue server seamlessly.",
   "main": "lib/residue.js",
   "scripts": {
@@ -12,7 +12,7 @@
   },
   "files": [
     "lib/residue.js",
-    "lib/residue-native.js",
+    "lib/native.js",
     "lib/private/common.js"
   ],
   "keywords": [

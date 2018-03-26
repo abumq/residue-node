@@ -1,8 +1,8 @@
-const residue = require('residue/lib/residue-native');
+const residue = require('residue/lib/native');
 
 console.log(`Library version: ${residue.version()}`);
 
-residue.loadConfigurationFromJson('{"url":"residue-server:8777","application_id":"com.muflihun.residue.sampleapp","rsa_key_size":2048,"utc_time":false,"time_offset":0,"dispatch_delay":1,"main_thread_id":"MainThread","client_id":"muflihun00102030","client_private_key":"keys/muflihun00102030.pem"}');
+residue.loadConfiguration('{"url":"residue-server:8777","application_id":"com.muflihun.residue.sampleapp","rsa_key_size":2048,"utc_time":false,"time_offset":0,"dispatch_delay":1,"main_thread_id":"MainThread","client_id":"muflihun00102030","client_private_key":"keys/muflihun00102030.pem"}');
 instance.connect();
 
 const logger = residue.getLogger("sample-app");
