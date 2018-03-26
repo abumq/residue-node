@@ -1,7 +1,8 @@
 # Change Log
 
-## [2.2.0]
+## [2.2.1]
 - Introduced native binding
+- Added `version()`
 
 ## [2.1.0]
 - Private key uses hex
