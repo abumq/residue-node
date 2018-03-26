@@ -1,6 +1,6 @@
 {
   "name": "residue",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "Library to interact with residue server seamlessly.",
   "main": "src/residue.js",
   "scripts": {
@@ -11,7 +11,8 @@
     "url": "git+https://github.com/muflihun/residue-node.git"
   },
   "files": [
-    "src/residue.js"
+    "src/residue.js",
+    "src/residue-native.js"
   ],
   "keywords": [
     "residue",
