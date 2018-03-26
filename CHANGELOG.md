@@ -1,6 +1,6 @@
 # Change Log
 
-## [2.1.7]
+## [2.1.8]
 - Introduced native binding
 
 ## [2.1.0]
