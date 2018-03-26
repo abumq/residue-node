@@ -1,4 +1,4 @@
-const residue = require('residue/residue-native');
+const residue = require('residue/lib/residue-native');
 
 const instance = new residue.Residue();
 
