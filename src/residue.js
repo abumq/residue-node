@@ -30,6 +30,7 @@ try {
 } catch (err) {
     console.log('residue package requires crypto (https://nodejs.org/api/crypto.html). It is disabled in your version of node!');
 }
+const CommonUtils = require('./private/common');
 
 const Params = {
     // user provided options for seamless connection
@@ -78,17 +79,6 @@ const ConnectType = {
     Connect: 1,
     Acknowledgement: 2,
     Touch: 3
-};
-
-// Various logging levels accepted by the server
-const LoggingLevels = {
-  Trace: 2,
-  Debug: 4,
-  Fatal: 8,
-  Error: 16,
-  Warning: 32,
-  Verbose: 64,
-  Info: 128
 };
 
 const Flag = {
@@ -613,44 +603,23 @@ const disconnect = () => {
     }
 }
 
-// Get location of callstack in <file>:<line> format
-const getSourceLocation = (splitChar) => (new Error).stack.split('\n')[4].replace(' at ', '').trim().split(splitChar);
-
-// Get file of callstack.
-// See getSourceLocation
-const getSourceFile = () => getSourceLocation(':')[0];
-
-// Get line of callstack.
-// See getSourceLocation
-const getSourceLine = () => parseInt(getSourceLocation(':')[1]);
-
-// Get func of call stack
-// See getSourceLocation
-const getSourceFunc = () => {
-    const parts = getSourceLocation(' ');
-    if (parts.length <= 1) {
-        return 'anonymous';
-    }
-    return parts[0];
-}
-
 // Logger interface for user to send log messages to server
 const Logger = function(id) {
     this.id = id;
 
-    this.info = (format, ...args) => sendLogRequest(LoggingLevels.Info, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
+    this.info = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Info, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
 
-    this.error = (format, ...args) => sendLogRequest(LoggingLevels.Error, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
+    this.error = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Error, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
 
-    this.debug = (format, ...args) => sendLogRequest(LoggingLevels.Debug, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
+    this.debug = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Debug, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
 
-    this.warn = (format, ...args) => sendLogRequest(LoggingLevels.Warn, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
+    this.warn = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Warn, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
 
-    this.trace = (format, ...args) => sendLogRequest(LoggingLevels.Trace, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
+    this.trace = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Trace, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
 
-    this.fatal = (format, ...args) => sendLogRequest(LoggingLevels.Fatal, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), 0, undefined, format, ...args);
+    this.fatal = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Fatal, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
 
-    this.verbose = (level, format, ...args) => sendLogRequest(LoggingLevels.Verbose, this.id, getSourceFile(), getSourceLine(), getSourceFunc(), level, undefined, format, ...args);
+    this.verbose = (vlevel, format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Verbose, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), vlevel, undefined, format, ...args);
 }
 
 // Get new logger with provided ID for writing logs
