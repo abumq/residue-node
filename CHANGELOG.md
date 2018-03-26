@@ -1,6 +1,6 @@
 # Change Log
 
-## [2.2.1]
+## [2.2.2]
 - Introduced native binding
 - Added `version()`
 
