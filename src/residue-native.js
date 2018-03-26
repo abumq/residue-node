@@ -1,6 +1,6 @@
 
 const util = require('util');
-const residue_native = require('./build/Release/residue-native-binding');
+const residue_native = require('residue-native');
 
 const getSourceLocation = (splitChar) => (new Error).stack.split('\n')[5].replace(' at ', '').trim().split(splitChar);
 
