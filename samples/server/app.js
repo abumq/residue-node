@@ -9,6 +9,9 @@ var residue = require('residue');
 var logger = residue.getLogger('sample-app');
 var defaultLogger = residue.getLogger('default');
 
+
+console.log(`Residue lib version v${residue.version()}`);
+
 var app = express();
 
 app.get('*', function(req, res, next) {
