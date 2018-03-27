@@ -1,20 +1,77 @@
 {
-  "name": "residue",
-  "version": "2.2.4",
-  "description": "Library to interact with residue server seamlessly.",
-  "main": "lib/residue.js",
-  "scripts": {
-    "test": "echo \"No tests available\" && exit 1"
+  "_args": [
+    [
+      {
+        "raw": "residue",
+        "scope": null,
+        "escapedName": "residue",
+        "name": "residue",
+        "rawSpec": "",
+        "spec": "latest",
+        "type": "tag"
+      },
+      "/home/abumusamq/Projects/residue-node/samples/server"
+    ]
+  ],
+  "_from": "residue@latest",
+  "_id": "residue@2.2.3",
+  "_inCache": true,
+  "_location": "/residue",
+  "_nodeVersion": "6.11.3",
+  "_npmOperationalInternal": {
+    "host": "s3://npm-registry-packages",
+    "tmp": "tmp/residue_2.2.3_1522108850765_0.44516086330073534"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/muflihun/residue-node.git"
+  "_npmUser": {
+    "name": "muflihun",
+    "email": "info@muflihun.com"
+  },
+  "_npmVersion": "3.10.10",
+  "_phantomChildren": {},
+  "_requested": {
+    "raw": "residue",
+    "scope": null,
+    "escapedName": "residue",
+    "name": "residue",
+    "rawSpec": "",
+    "spec": "latest",
+    "type": "tag"
+  },
+  "_requiredBy": [
+    "#USER",
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/residue/-/residue-2.2.3.tgz",
+  "_shasum": "3d954976537548f0b0a462fb45c8766dad448769",
+  "_shrinkwrap": null,
+  "_spec": "residue",
+  "_where": "/home/abumusamq/Projects/residue-node/samples/server",
+  "author": {
+    "name": "Muflihun Labs",
+    "email": "info@muflihun.com"
+  },
+  "bugs": {
+    "url": "https://github.com/muflihun/residue-node/issues"
+  },
+  "dependencies": {
+    "node-rsa": "^0.4.2"
+  },
+  "description": "Library to interact with residue server seamlessly.",
+  "devDependencies": {},
+  "directories": {},
+  "dist": {
+    "shasum": "3d954976537548f0b0a462fb45c8766dad448769",
+    "tarball": "https://registry.npmjs.org/residue/-/residue-2.2.3.tgz",
+    "fileCount": 7,
+    "unpackedSize": 35489
   },
   "files": [
     "lib/residue.js",
     "lib/native.js",
     "lib/private/common.js"
   ],
+  "gitHead": "e5ead159dc431df0518208639326be317f75de95",
+  "homepage": "https://github.com/muflihun/residue-node#readme",
   "keywords": [
     "residue",
     "logging",
@@ -25,13 +82,23 @@
     "easylogging",
     "easylogging++"
   ],
-  "author": "Muflihun Labs <info@muflihun.com>",
   "license": "Apache-2.0",
-  "bugs": {
-    "url": "https://github.com/muflihun/residue-node/issues"
+  "main": "lib/residue.js",
+  "maintainers": [
+    {
+      "name": "muflihun",
+      "email": "info@muflihun.com"
+    }
+  ],
+  "name": "residue",
+  "optionalDependencies": {},
+  "readme": "ERROR: No README data found!",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/muflihun/residue-node.git"
   },
-  "homepage": "https://github.com/muflihun/residue-node#readme",
-  "dependencies": {
-    "node-rsa": "^0.4.2"
-  }
+  "scripts": {
+    "test": "echo \"No tests available\" && exit 1"
+  },
+  "version": "2.2.3"
 }

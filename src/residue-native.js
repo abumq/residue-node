@@ -9,13 +9,12 @@
 // https://muflihun.com
 // https://muflihun.github.io/residue
 // https://github.com/muflihun/residue-node
-// https://github.com/muflihun/residue-node-native
 //
 
 "use strict";
 
 const util = require('util');
-const residue_native = require('residue-native');
+const residue_native = require('bindings')('residue-native');
 const CommonUtils = require('./private/common');
 
 const Logger = function(id) {
