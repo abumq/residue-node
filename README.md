@@ -10,16 +10,6 @@ A very simple, secure Node.js library to interact with residue seamlessly.
 
 This module provides interface for connecting and interacting with residue server seamlessly, means, once you are connected this module takes care of expired tokens and clients and keep itself updated with latest tokens and ping server when needed to stay alive.
 
-## Native API
-This library depends on following native modules, without them library will not work:
-
- * [Path Module](https://nodejs.org/api/path.html)
- * [File System Module](https://nodejs.org/api/fs.html)
- * [Crypto Module](https://nodejs.org/api/crypto.html)
- * [ZLib Module](https://nodejs.org/api/zlib.html)
- * [Net Module](https://nodejs.org/api/net.html)
- * [Util Module](https://nodejs.org/api/util.html)
-
 ## API
 #### `connect(options)`
 Connects application to residue using params. If options is not specified, you should use `loadConfiguration` to load the options
@@ -60,6 +50,11 @@ const confFile = 'client.conf.json';
 if (residue.loadConfiguration(confFile)) {
     residue.connect();
 }
+
+// or
+// residue.loadConfiguration({ url: ... })
+// or
+// residue.loadConfiguration('{ url: ... }')
 
 // ALTERNATIVELY
 residue.connect({
