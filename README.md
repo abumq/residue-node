@@ -81,6 +81,15 @@ logger.fatal(...);
 logger.verbose(verbose-level, ...);
 ```
 
+## Native Binding
+Residue Node.js also comes with native binding that uses [C++ client library](https://github.com/muflihun/residue-cpp) to manage connections and asyncronous requests
+
+API for this module is same as `residue` The only difference is: include `residue/lib/native` instead of `residue`
+
+```
+const residue = require('residue/lib/native');
+```
+
 ## Sample
 You can check out [sample client apps](https://github.com/muflihun/residue-node/blob/master/samples) for practical use of this package.
 
