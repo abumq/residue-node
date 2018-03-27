@@ -1,4 +1,4 @@
-const residue = require('residue/lib/native');
+const residue = require('residue');
 const logger = residue.getLogger('sample-app');
 
 console.log(`Library version: ${residue.version()}`);
