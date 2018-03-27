@@ -9,6 +9,7 @@
 // https://muflihun.com
 // https://muflihun.github.io/residue
 // https://github.com/muflihun/residue-node
+// https://github.com/muflihun/residue-node-native
 //
 
 "use strict";

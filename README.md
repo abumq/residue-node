@@ -61,6 +61,11 @@ if (residue.loadConfiguration(confFile)) {
     residue.connect();
 }
 
+// or
+// residue.loadConfiguration({ url: ... })
+// or
+// residue.loadConfiguration('{ url: ... }')
+
 // ALTERNATIVELY
 residue.connect({
     url: ...
@@ -85,6 +90,11 @@ logger.trace(...);
 logger.fatal(...);
 logger.verbose(verbose-level, ...);
 ```
+
+## Native Binding
+Residue Node.js also comes with native binding that uses [C++ client library](https://github.com/muflihun/residue-cpp) to manage connections and asyncronous requests.
+
+API for this module is same as `residue`. As long as you have installed [`residue-native`](https://www.npmjs.com/package/residue-native) package and it can be loaded with no problems, it will use native binding.
 
 ## Sample
 You can check out [sample client apps](https://github.com/muflihun/residue-node/blob/master/samples) for practical use of this package.
