@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "residue": "^2.3.2",
+    "residue": "^2.3.3",
     "residue-native": "^1.0.3"
   }
 }
