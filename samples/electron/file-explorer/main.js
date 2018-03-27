@@ -2,8 +2,9 @@ const {app, BrowserWindow} = require('electron');
 
 let mainWindow;
 
-
 const residue = require('residue');
+
+console.log(`Residue library version: v${residue.version()}`);
 
 global.residue = residue;
 global.logger = residue.getLogger("sample-app");
