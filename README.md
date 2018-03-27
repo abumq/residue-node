@@ -10,7 +10,7 @@ A very simple, secure Node.js library to interact with residue seamlessly.
 
 This module provides interface for connecting and interacting with residue server seamlessly, means, once you are connected this module takes care of expired tokens and clients and keep itself updated with latest tokens and ping server when needed to stay alive.
 
-## Native API
+## Native Modules
 This library depends on following native modules, without them library will not work:
 
  * [Path Module](https://nodejs.org/api/path.html)
@@ -94,7 +94,7 @@ logger.verbose(verbose-level, ...);
 ## Native Binding
 Residue Node.js also comes with native binding that uses [C++ client library](https://github.com/muflihun/residue-cpp) to manage connections and asyncronous requests.
 
-API for this module is same as `residue`. As long as you have installed [`residue-native`](https://www.npmjs.com/package/residue-native) package and it can be loaded with no problems, it will use native binding.
+If you have installed [`residue-native`](https://www.npmjs.com/package/residue-native) package alongside `residue`, native binding will be used otherwise it will fallback to JS implementation.
 
 ## Sample
 You can check out [sample client apps](https://github.com/muflihun/residue-node/blob/master/samples) for practical use of this package.
