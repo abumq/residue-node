@@ -622,9 +622,9 @@ const Logger = function(id) {
 
     this._write_log = (level, vlevel, format, ...args) => sendLogRequest(level,
                                                     this.id,
-                                                    CommonUtils.getSourceFile(this.source_base_index),
-                                                    CommonUtils.getSourceLine(this.source_base_index),
-                                                    CommonUtils.getSourceFunc(this.source_base_index),
+                                                    CommonUtils.getSourceFile(this._source_base_index),
+                                                    CommonUtils.getSourceLine(this._source_base_index),
+                                                    CommonUtils.getSourceFunc(this._source_base_index),
                                                     vlevel,
                                                     undefined,
                                                     format,

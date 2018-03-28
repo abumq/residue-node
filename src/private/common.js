@@ -17,7 +17,14 @@ const path = require('path');
 "use strict";
 
 // Get location of callstack in <file>:<line> format
-const getSourceLocation = (splitChar, baseIdx) => (new Error).stack.split('\n')[baseIdx || 4].replace(' at ', '').trim().split(splitChar);
+const getSourceLocation = (splitChar, baseIdx) => {
+    const er = new Error;
+    const item = er.stack.split('\n')[baseIdx || 4];
+    if (!item) {
+        return ['<anonymous>', 0];
+    }
+    return item.replace(' at ', '').trim().split(splitChar);
+};
 
 // Get file of callstack.
 // See getSourceLocation
