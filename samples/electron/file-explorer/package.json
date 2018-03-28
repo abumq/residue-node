@@ -3,6 +3,6 @@
   "version": "1.0.0",
   "main": "main.js",
   "dependencies": {
-    "residue": "^2.3.9"
+    "residue": "^2.3.10"
   }
 }
