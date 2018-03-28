@@ -618,17 +618,22 @@ const Logger = function(id) {
 
     //private members
 
-    this._source_base_index = 5;
-
     this._write_log = (level, vlevel, format, ...args) => sendLogRequest(level,
-                                                    this.id,
-                                                    CommonUtils.getSourceFile(this._source_base_index),
-                                                    CommonUtils.getSourceLine(this._source_base_index),
-                                                    CommonUtils.getSourceFunc(this._source_base_index),
-                                                    vlevel,
-                                                    undefined,
-                                                    format,
-                                                    ...args);
+                                                                         this.id,
+                                                                         this.log_sources.getSourceFile(),
+                                                                         this.log_sources.getSourceLine(),
+                                                                         this.log_sources.getSourceFunc(),
+                                                                         vlevel,
+                                                                         undefined,
+                                                                         format,
+                                                                         ...args);
+
+    this.log_sources = {
+        base_idx: 6,
+        getSourceFile: () => CommonUtils.getSourceFile(this.log_sources.base_idx),
+        getSourceLine: () => CommonUtils.getSourceLine(this.log_sources.base_idx),
+        getSourceFunc: () => CommonUtils.getSourceFunc(this.log_sources.base_idx),
+    };
 }
 
 exports.version = () => require('./../package.json').version;

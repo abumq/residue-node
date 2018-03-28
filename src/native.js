@@ -41,13 +41,20 @@ const Logger = function(id) {
         }
 
         residue_native.write_log(this.id,
-                                 CommonUtils.getSourceFile(this._source_base_index),
-                                 CommonUtils.getSourceLine(this._source_base_index),
-                                 CommonUtils.getSourceFunc(this._source_base_index),
+                                 this.log_sources.getSourceFile(),
+                                 this.log_sources.getSourceLine(),
+                                 this.log_sources.getSourceFunc(),
                                  util.format(fmt, ...cpy),
                                  level,
                                  vlevel);
     }
+
+    this.log_sources = {
+        base_idx: 6,
+        getSourceFile: () => CommonUtils.getSourceFile(this.log_sources.base_idx),
+        getSourceLine: () => CommonUtils.getSourceLine(this.log_sources.base_idx),
+        getSourceFunc: () => CommonUtils.getSourceFunc(this.log_sources.base_idx),
+    };
 };
 
 const loadConfiguration = (jsonOrFilename) => {
