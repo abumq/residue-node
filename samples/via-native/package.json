@@ -10,6 +10,6 @@
   "license": "ISC",
   "dependencies": {
     "residue": "^2.3.10",
-    "residue-native": "^1.0.3"
+    "residue-native": "^1.0.7"
   }
 }
