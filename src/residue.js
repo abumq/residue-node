@@ -608,19 +608,27 @@ const disconnect = () => {
 const Logger = function(id) {
     this.id = id;
 
-    this.info = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Info, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
+    this.info = (format, ...args)            => this._write_log(CommonUtils.LoggingLevels.Info, 0, format, ...args);
+    this.error = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Error, 0, format, ...args);
+    this.debug = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Debug, 0, format, ...args);
+    this.warn = (format, ...args)            => this._write_log(CommonUtils.LoggingLevels.Warn, 0, format, ...args);
+    this.trace = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Trace, 0, format, ...args);
+    this.fatal = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Fatal, 0, format, ...args);
+    this.verbose = (vlevel, format, ...args) => this._write_log(CommonUtils.LoggingLevels.Verbose, vlevel, format, ...args);
 
-    this.error = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Error, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
+    //private members
 
-    this.debug = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Debug, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
+    this._source_base_index = 5;
 
-    this.warn = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Warn, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
-
-    this.trace = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Trace, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
-
-    this.fatal = (format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Fatal, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), 0, undefined, format, ...args);
-
-    this.verbose = (vlevel, format, ...args) => sendLogRequest(CommonUtils.LoggingLevels.Verbose, this.id, CommonUtils.getSourceFile(), CommonUtils.getSourceLine(), CommonUtils.getSourceFunc(), vlevel, undefined, format, ...args);
+    this._write_log = (level, vlevel, format, ...args) => sendLogRequest(level,
+                                                    this.id,
+                                                    CommonUtils.getSourceFile(this.source_base_index),
+                                                    CommonUtils.getSourceLine(this.source_base_index),
+                                                    CommonUtils.getSourceFunc(this.source_base_index),
+                                                    vlevel,
+                                                    undefined,
+                                                    format,
+                                                    ...args);
 }
 
 exports.version = () => require('./../package.json').version;

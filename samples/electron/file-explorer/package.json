@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "main.js",
   "dependencies": {
-    "residue": "^2.3.4"
+    "residue": "^2.3.4",
+    "residue-native": "^1.0.3"
   }
 }

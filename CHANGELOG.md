@@ -1,6 +1,6 @@
 # Change Log
 
-## [2.3.4]
+## [2.3.5]
 - Introduced native binding
 - Added `version()` and `type()`
 

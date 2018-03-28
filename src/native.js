@@ -21,22 +21,18 @@ const CommonUtils = require('./private/common');
 const Logger = function(id) {
     this.id = id;
 
-    this.trace = (fmt, ...args) => this._send_log_msg(CommonUtils.LoggingLevels.Trace, undefined, fmt, ...args);
+    this.trace = (fmt, ...args)           => this._write_log(CommonUtils.LoggingLevels.Trace, undefined, fmt, ...args);
+    this.debug = (fmt, ...args)           => this._write_log(CommonUtils.LoggingLevels.Debug, undefined, fmt, ...args);
+    this.fatal = (vlevel, fmt, ...args)   => this._write_log(CommonUtils.LoggingLevels.Fatal, vlevel, fmt, ...args);
+    this.error = (fmt, ...args)           => this._write_log(CommonUtils.LoggingLevels.Error, undefined, fmt, ...args);
+    this.warning = (fmt, ...args)         => this._write_log(CommonUtils.LoggingLevels.Warning, undefined, fmt, ...args);
+    this.verbose = (vlevel, fmt, ...args) => this._write_log(CommonUtils.LoggingLevels.Verbose, vlevel, fmt, ...args);
+    this.info = (fmt, ...args)            => this._write_log(CommonUtils.LoggingLevels.Info, undefined, fmt, ...args);
 
-    this.debug = (fmt, ...args) => this._send_log_msg(CommonUtils.LoggingLevels.Debug, undefined, fmt, ...args);
+    // private members
 
-    this.fatal = (vlevel, fmt, ...args) => this._send_log_msg(CommonUtils.LoggingLevels.Fatal, vlevel, fmt, ...args);
-
-    this.error = (fmt, ...args) => this._send_log_msg(CommonUtils.LoggingLevels.Error, undefined, fmt, ...args);
-
-    this.warning = (fmt, ...args) => this._send_log_msg(CommonUtils.LoggingLevels.Warning, undefined, fmt, ...args);
-
-    this.verbose = (vlevel, fmt, ...args) => this._send_log_msg(CommonUtils.LoggingLevels.Verbose, vlevel, fmt, ...args);
-
-    this.info = (fmt, ...args) => this._send_log_msg(CommonUtils.LoggingLevels.Info, undefined, fmt, ...args);
-
-    // private
-    this._send_log_msg = (level, vlevel, fmt, ...args) => {
+    this._source_base_index = 5;
+    this._write_log = (level, vlevel, fmt, ...args) => {
         const cpy = args;
         for (var idx = 0; idx < cpy.length; ++idx) {
             if (typeof cpy[idx] === 'object') {
@@ -45,9 +41,9 @@ const Logger = function(id) {
         }
 
         residue_native.write_log(this.id,
-                                 CommonUtils.getSourceFile(5),
-                                 CommonUtils.getSourceLine(5),
-                                 CommonUtils.getSourceFunc(5),
+                                 CommonUtils.getSourceFile(this._source_base_index),
+                                 CommonUtils.getSourceLine(this._source_base_index),
+                                 CommonUtils.getSourceFunc(this._source_base_index),
                                  util.format(fmt, ...cpy),
                                  level,
                                  vlevel);
