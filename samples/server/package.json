@@ -10,6 +10,6 @@
   "license": "MIT",
   "dependencies": {
     "express": "^4.14.0",
-    "residue": "^2.3.3"
+    "residue": "^2.3.8"
   }
 }
