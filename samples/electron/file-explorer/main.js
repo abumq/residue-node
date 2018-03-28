@@ -4,7 +4,7 @@ let mainWindow;
 
 const residue = require('residue');
 
-console.log(`Residue library version: v${residue.version()}`);
+console.log(`Residue library version: v${residue.version()}-${residue.type()}`);
 
 global.residue = residue;
 global.logger = residue.getLogger("sample-app");

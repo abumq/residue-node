@@ -10,7 +10,7 @@ var logger = residue.getLogger('sample-app');
 var defaultLogger = residue.getLogger('default');
 
 
-console.log(`Residue lib version v${residue.version()}`);
+console.log(`Residue lib version v${residue.version()}-${residue.type()}`);
 
 var app = express();
 

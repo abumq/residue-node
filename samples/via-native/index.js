@@ -1,7 +1,7 @@
 const residue = require('residue');
 const logger = residue.getLogger('sample-app');
 
-console.log(`Library version: ${residue.version()}`);
+console.log(`Library version: ${residue.version()}-${residue.type()}`);
 
 const confFile = 'client.conf.json';
 if (residue.loadConfiguration(confFile)) {

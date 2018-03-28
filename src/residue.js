@@ -624,6 +624,7 @@ const Logger = function(id) {
 }
 
 exports.version = () => require('./../package.json').version;
+exports.type = () => 'js';
 exports.loadConfiguration = loadConfiguration;
 exports.connect = connect;
 exports.disconnect = disconnect;

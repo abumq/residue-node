@@ -72,6 +72,7 @@ const connect = (json) => {
 };
 
 exports.version = residue_native.version;
+exports.type = () = 'native';
 exports.loadConfiguration = loadConfiguration;
 exports.connect = connect;
 exports.disconnect = residue_native.disconnect;
