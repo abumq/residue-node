@@ -46,7 +46,7 @@ exports.getSourceFunc = (baseIdx) => {
 
 exports.confJson = (jsonOrFilename) => {
     if (typeof jsonOrFilename === 'object') {
-        return JSON.strigify(jsonOrFilename)
+        return JSON.stringify(jsonOrFilename)
     } else if (typeof jsonOrFilename === 'string' && jsonOrFilename.length > 0) {
         if (jsonOrFilename.trim()[0] === '{') {
             return jsonOrFilename.trim();
