@@ -1,7 +1,7 @@
 # Change Log
 
 ## [2.3.16]
-- Fixed translating Error and other classes
+- Fixed translating Error
 
 ## [2.3.13]
 - Fixed fatal log for native
