@@ -1,5 +1,7 @@
 language: node_js
 sudo: required
+env:
+  - RESIDUE_VERSION=2.1.2
 
 node_js:
   - "7"
