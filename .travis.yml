@@ -20,6 +20,10 @@ matrix:
     - sudo sh -c "$(curl -fsSL https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh)"
     - npm install -g residue-native@latest
 
+before_script:
+  - pwd
+  - ls -l
+
 cache:
   directories:
     - "node_modules"
