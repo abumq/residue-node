@@ -1,6 +1,6 @@
 {
   "name": "residue",
-  "version": "2.3.16",
+  "version": "2.3.17",
   "description": "Library to interact with residue server seamlessly.",
   "main": "index.js",
   "scripts": {
@@ -33,6 +33,7 @@
   },
   "homepage": "https://github.com/muflihun/residue-node#readme",
   "dependencies": {
-    "node-rsa": "^0.4.2"
+    "node-rsa": "^0.4.2",
+    "residue-utils": "^1.0.0"
   }
 }

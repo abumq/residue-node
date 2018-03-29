@@ -16,7 +16,7 @@
 
 const util = require('util');
 const residue_native = require('residue-native');
-const CommonUtils = require('./private/common');
+const CommonUtils = require('residue-utils');
 
 const Logger = function(id) {
     this.id = id;

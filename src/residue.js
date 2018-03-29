@@ -24,13 +24,13 @@ const net = require('net');
 const util = require('util');
 const zlib = require('zlib');
 const NodeRSA = require('node-rsa');
+const CommonUtils = require('residue-utils');
 let crypto;
 try {
     crypto = require('crypto');
 } catch (err) {
     console.log('residue package requires crypto (https://nodejs.org/api/crypto.html). It is disabled in your version of node!');
 }
-const CommonUtils = require('./private/common');
 
 const Params = {
     // user provided options for seamless connection
