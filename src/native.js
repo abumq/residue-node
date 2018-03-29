@@ -21,6 +21,8 @@ const CommonUtils = require('./private/common');
 const Logger = function(id) {
     this.id = id;
 
+    // we don't need this because binary comes with CreateLoggerAutomatically flag set
+    // (see CMakeLists.txt) but will still do it so we have it available before hand
     residue_native.register_logger(this.id);
 
     this.trace = (fmt, ...args)           => this._write_log(CommonUtils.LoggingLevels.Trace, undefined, fmt, ...args);
