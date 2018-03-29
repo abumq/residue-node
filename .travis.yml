@@ -4,13 +4,14 @@ node_js:
   - "7"
   - "8"
 
-os:
-  - linux
-  - linux
+matrix:
+  include:
+  - os: linux
+  - os: linux
     before_install:
     - npm install -g residue-native@latest
-  - osx
-  - osx
+  - os: osx
+  - os: osx
     before_install:
     - npm install -g residue-native@latest
 
