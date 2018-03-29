@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.3.14]
+- Fixed translating Error and other classes
+
 ## [2.3.13]
 - Fixed fatal log for native
 - Register logger explicitely

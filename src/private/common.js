@@ -1,20 +1,20 @@
 //
 // Copyright 2017-present Muflihun Labs
 //
-// Part of residue-node
+// Common utils for Easylogging++ and Residue Node.js client
 //
 // Author: @abumusamq
 //
 // https://muflihun.com
 // https://muflihun.github.io/residue
 // https://github.com/muflihun/residue-node
-// https://github.com/muflihun/residue-node-native
+// https://github.com/muflihun/easyloggingpp-node
 //
+
+"use strict";
 
 const fs = require('fs');
 const path = require('path');
-
-"use strict";
 
 // Get location of callstack in <file>:<line> format
 const getSourceLocation = (splitChar, baseIdx) => {
@@ -56,13 +56,63 @@ exports.confJson = (jsonOrFilename) => {
     return false;
 }
 
-// Various logging levels accepted by the server
+exports.translateArgs = (...args) => {
+    const cpy = args;
+    for (var idx = 0; idx < cpy.length; ++idx) {
+        if (!cpy[idx]) {
+            continue;
+        }
+        if (cpy[idx] instanceof Error) {
+            cpy[idx] = logErrorStack ? cpy[idx].stack : cpy[idx].toString();
+        } else if (typeof cpy[idx].toString === 'function') {
+            cpy[idx] = cpy[idx].toString();
+        } else if (typeof cpy[idx].stringify === 'function') {
+            cpy[idx] = cpy[idx].stringify();
+        } else {
+            cpy[idx] = JSON.stringify(cpy[idx]);
+        }
+    }
+    return cpy;
+}
+
 exports.LoggingLevels = {
-  Trace: 2,
-  Debug: 4,
-  Fatal: 8,
-  Error: 16,
-  Warning: 32,
-  Verbose: 64,
-  Info: 128
+    Global: 1,
+    Trace: 2,
+    Debug: 4,
+    Fatal: 8,
+    Error: 16,
+    Warning: 32,
+    Verbose: 64,
+    Info: 128,
 };
+
+exports.ConfigurationType = {
+    Enabled: 1,
+    ToFile: 2,
+    ToStandardOutput: 4,
+    Format: 8,
+    Filename: 16,
+    SubsecondPrecision: 32,
+    MillisecondsWidth: 32,
+    PerformanceTracking: 64,
+    MaxLogFileSize: 128,
+    LogFlushThreshold: 256,
+};
+
+exports.LoggingFlag = {
+    NewLineForContainer: 1,
+    AllowVerboseIfModuleNotSpecified: 2,
+    LogDetailedCrashReason: 4,
+    DisableApplicationAbortOnFatalLog: 8,
+    ImmediateFlush: 16,
+    StrictLogFileSizeCheck: 32,
+    ColoredTerminalOutput: 64,
+    MultiLoggerSupport: 128,
+    DisablePerformanceTrackingCheckpointComparison: 256,
+    DisableVModules: 512,
+    DisableVModulesExtensions: 1024,
+    HierarchicalLogging: 2048,
+    CreateLoggerAutomatically: 4096,
+    AutoSpacing: 8192,
+    FixedTimeFormat: 16384,
+}

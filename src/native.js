@@ -37,18 +37,13 @@ const Logger = function(id) {
 
     this._source_base_index = 5;
     this._write_log = (level, vlevel, fmt, ...args) => {
-        const cpy = args;
-        for (var idx = 0; idx < cpy.length; ++idx) {
-            if (typeof cpy[idx] === 'object') {
-                cpy[idx] = JSON.stringify(cpy[idx]);
-            }
-        }
+        const fullMessage = CommonUtils.translateArgs(...args);
 
         residue_native.write_log(this.id,
                                  this.log_sources.getSourceFile(),
                                  this.log_sources.getSourceLine(),
                                  this.log_sources.getSourceFunc(),
-                                 util.format(fmt, ...cpy),
+                                 util.format(fmt, ...fullMessage),
                                  level,
                                  vlevel);
     }

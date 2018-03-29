@@ -449,17 +449,12 @@ const sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, ver
 
     Utils.debugLog('Sending log request [' + loggerId  + ']...');
 
-    const cpy = args;
-    for (var idx = 0; idx < cpy.length; ++idx) {
-        if (typeof cpy[idx] === 'object') {
-            cpy[idx] = JSON.stringify(cpy[idx]);
-        }
-    }
+    const fullMessage = CommonUtils.translateArgs(...args);
     const request = {
         _t: Utils.getTimestamp(),
         datetime: datetime,
         logger: loggerId,
-        msg: util.format(format, ...cpy),
+        msg: util.format(format, ...fullMessage),
         file: sourceFile,
         line: sourceLine,
         func: sourceFunc,
