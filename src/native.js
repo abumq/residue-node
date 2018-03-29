@@ -21,6 +21,8 @@ const CommonUtils = require('./private/common');
 const Logger = function(id) {
     this.id = id;
 
+    residue_native.register_logger(this.id);
+
     this.trace = (fmt, ...args)           => this._write_log(CommonUtils.LoggingLevels.Trace, undefined, fmt, ...args);
     this.debug = (fmt, ...args)           => this._write_log(CommonUtils.LoggingLevels.Debug, undefined, fmt, ...args);
     this.fatal = (fmt, ...args)           => this._write_log(CommonUtils.LoggingLevels.Fatal, undefined, fmt, ...args);

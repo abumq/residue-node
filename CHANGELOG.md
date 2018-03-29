@@ -1,7 +1,8 @@
 # Change Log
 
-## [2.3.12]
+## [2.3.13]
 - Fixed fatal log for native
+- Register logger explicitely
 
 ## [2.3.11]
 - Introduced native binding
