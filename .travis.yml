@@ -6,7 +6,13 @@ node_js:
 
 os:
   - linux
+  - linux
+    before_install:
+    - npm install -g residue-native
   - osx
+  - osx
+    before_install:
+    - npm install -g residue-native
 
 cache:
   directories:
