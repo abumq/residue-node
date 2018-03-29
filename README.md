@@ -10,16 +10,6 @@ A very simple, secure Node.js library to interact with residue seamlessly.
 
 This module provides interface for connecting and interacting with residue server seamlessly, means, once you are connected this module takes care of expired tokens and clients and keep itself updated with latest tokens and ping server when needed to stay alive.
 
-## Native Modules
-This library depends on following native modules, without them library will not work:
-
- * [Path Module](https://nodejs.org/api/path.html)
- * [File System Module](https://nodejs.org/api/fs.html)
- * [Crypto Module](https://nodejs.org/api/crypto.html)
- * [ZLib Module](https://nodejs.org/api/zlib.html)
- * [Net Module](https://nodejs.org/api/net.html)
- * [Util Module](https://nodejs.org/api/util.html)
-
 ## API
 #### `connect(options)`
 Connects application to residue using params. If options is not specified, you should use `loadConfiguration` to load the options
@@ -52,7 +42,7 @@ This does not verify the options. Options are validated in `connect()` function
 Returns logger class for logging interface
 
 ## Usage
-```
+```js
 var residue = require('residue');
 var logger = residue.getLogger('sample-app');
 
@@ -82,13 +72,17 @@ logger.info('null %s', null);
 
 logger.info('undefined %s', undefined);
 
-// other levels
+```
+
+## Log
+```js
+logger.info(...);
 logger.warn(...);
 logger.error(...);
 logger.debug(...);
 logger.trace(...);
 logger.fatal(...);
-logger.verbose(verbose-level, ...);
+logger.verbose(verbose_level, ...);
 ```
 
 ## Native Binding
