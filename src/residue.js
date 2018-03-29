@@ -449,7 +449,7 @@ const sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, ver
 
     Utils.debugLog('Sending log request [' + loggerId  + ']...');
 
-    const fullMessage = CommonUtils.translateArgs(...args);
+    const fullMessage = CommonUtils.translateArgs(true, ...args);
     const request = {
         _t: Utils.getTimestamp(),
         datetime: datetime,

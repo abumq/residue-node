@@ -1,6 +1,6 @@
 # Change Log
 
-## [2.3.14]
+## [2.3.15]
 - Fixed translating Error and other classes
 
 ## [2.3.13]
