@@ -4,7 +4,7 @@
   "description": "Library to interact with residue server seamlessly.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"No tests.\" && exit 0"
+    "test": "node test"
   },
   "repository": {
     "type": "git",
