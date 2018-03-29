@@ -1,5 +1,8 @@
 # Change Log
 
+## [2.3.12]
+- Fixed fatal log for native
+
 ## [2.3.11]
 - Introduced native binding
 - Added `version()` and `type()`
