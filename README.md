@@ -2,6 +2,8 @@
 
 # Residue Node.js Client
 
+[![Build Status](https://img.shields.io/travis/muflihun/residue-node/master.svg)](https://travis-ci.org/muflihun/residue-node/branches)
+[![Build status](https://ci.appveyor.com/api/projects/status/rp6ukh5apm5ryjxq?svg=true)](https://ci.appveyor.com/project/abumusamq/residue-node)
 [![Version](https://img.shields.io/npm/v/residue.svg)](https://www.npmjs.com/package/residue)
 [![GitHub license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/muflihun/residue-node/blob/master/LICENSE)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/MuflihunDotCom/25)
