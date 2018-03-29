@@ -8,11 +8,11 @@ os:
   - linux
   - linux
     before_install:
-    - npm install -g residue-native
+    - npm install -g residue-native@latest
   - osx
   - osx
     before_install:
-    - npm install -g residue-native
+    - npm install -g residue-native@latest
 
 cache:
   directories:
