@@ -1,4 +1,4 @@
-const residue = require('residue');
+const residue = require('../');
 
 
 console.log(`version: ${residue.version()} (${residue.type()})`);
