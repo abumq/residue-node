@@ -4,7 +4,6 @@ env:
   - RESIDUE_VERSION=2.1.2
 
 node_js:
-  - "6"
   - "7"
   - "8"
   - "9"
@@ -14,7 +13,7 @@ matrix:
   - os: linux
   - os: linux
     before_install:
-    - sudo sh -c "$(curl -fsSL https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh $RESIDUE_VERSION)"
+    - sudo sh -c "$(curl -fsSL https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh)"
     - npm install residue-native@latest
   - os: osx
   - os: osx

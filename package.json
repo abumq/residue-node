@@ -34,6 +34,7 @@
   "homepage": "https://github.com/muflihun/residue-node#readme",
   "dependencies": {
     "node-rsa": "^0.4.2",
+    "residue-native": "^1.0.16",
     "residue-utils": "^1.0.0"
   }
 }
