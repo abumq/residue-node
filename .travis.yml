@@ -4,8 +4,10 @@ env:
   - RESIDUE_VERSION=2.1.2
 
 node_js:
+  - "6"
   - "7"
   - "8"
+  - "9"
 
 matrix:
   include:
