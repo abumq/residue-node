@@ -17,7 +17,8 @@ matrix:
   - os: osx
   - os: osx
     before_install:
-    - sudo sh -c "$(curl -fsSL https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh $RESIDUE_VERSION)"
+    - wget https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh
+    - sudo sh install.sh $RESIDUE_VERSION
     - npm install -g residue-native@latest
 
 before_script:
