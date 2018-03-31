@@ -3,7 +3,7 @@ const fs = require('fs');
 
 console.log(`version: ${residue.version()} (${residue.type()})`);
 
-if (process.platform === 'linux' || process.platform === 'darwin-') {
+if (process.platform === 'linux' || process.platform === 'darwin') {
   const getContents = () => fs.readFileSync('test/residue.log').toString('utf8');
   const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
