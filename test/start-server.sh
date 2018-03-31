@@ -5,6 +5,7 @@ npm install -g residue-$TYPE
 
 # Start
 export RESIDUE_HOME=`pwd`/test/server/
-sudo nohup residue-$TYPE $RESIDUE_HOME/conf.json -v --residue-home=$RESIDUE_HOME &
-
+nohup residue-$TYPE $RESIDUE_HOME/conf.json -v --force-without-root --residue-home=$RESIDUE_HOME &
+sleep 1
+ls -l
 cat nohup.out
