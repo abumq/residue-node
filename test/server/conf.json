@@ -28,11 +28,11 @@
     "managed_loggers": [
         {
             "logger_id": "residue",
-            "configuration_file": "$RESIDUE_HOME/residue.conf"
+            "configuration_file": "$RESIDUE_HOME/logger.conf"
         },
         {
             "logger_id": "default",
-            "configuration_file": "$RESIDUE_HOME/residue.conf"
+            "configuration_file": "$RESIDUE_HOME/logger.conf"
         }
     ]
 }
