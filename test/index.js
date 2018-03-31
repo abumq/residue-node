@@ -15,7 +15,7 @@ const testLog = async (fn, msg) => {
   return getContents().indexOf(msg) !== -1;
 }
 const detailedTest = async () => {
-    if (process.platform === 'linux' || process.platform === 'darwin') {
+    if (process.platform === 'linux' || process.platform === 'darwin--') {
       console.log('connecting...');
 
       residue.connect({
