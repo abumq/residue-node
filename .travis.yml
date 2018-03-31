@@ -2,6 +2,7 @@ language: node_js
 sudo: required
 env:
   - RESIDUE_VERSION=2.1.2
+  - RESIDUE_HOME=`pwd`/test/server/
 
 node_js:
   - "7"
@@ -23,9 +24,7 @@ matrix:
     - npm install residue-native@latest
 
 before_script:
-  - pwd
-  - ls -l
-  - ls -l node_modules
+    - sudo sh test/start-server.sh
 
 cache:
   directories:

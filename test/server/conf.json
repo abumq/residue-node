@@ -1,0 +1,38 @@
+{
+    "admin_port": 8776,
+    "connect_port": 8777,
+    "logging_port": 8778,
+    "server_key": "048CB7050312DB329788CE1533C294A1F248F8A1BD6F611D7516803EDE271C65",
+    "default_key_size": 256,
+    "enable_cli": false,
+    "enable_dynamic_buffer": false,
+    "allow_insecure_connection": true,
+    "allow_unmanaged_loggers": true,
+    "allow_unmanaged_clients": true,
+    "immediate_flush": false,
+    "compression": true,
+    "allow_bulk_log_request": true,
+    "max_items_in_bulk": 50,
+    "client_age": 240,
+    "file_mode": 416,
+    "timestamp_validity": 120,
+    "requires_timestamp": true,
+    "non_acknowledged_client_age": 300,
+    "client_integrity_task_interval": 300,
+    "dispatch_delay": 1,
+    "archived_log_directory": "%original/backups/%logger/",
+    "archived_log_filename": "%level-%hour-%min-%day-%month-%year.log",
+    "archived_log_compressed_filename": "%hour-%min-%day-%month-%year.tar.gz",
+    "managed_clients": [
+    ],
+    "managed_loggers": [
+        {
+            "logger_id": "residue",
+            "configuration_file": "$RESIDUE_HOME/residue.conf"
+        },
+        {
+            "logger_id": "default",
+            "configuration_file": "$RESIDUE_HOME/residue.conf"
+        }
+    ]
+}
