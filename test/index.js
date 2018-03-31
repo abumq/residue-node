@@ -33,35 +33,42 @@ const detailedTest = async () => {
 
       if (!await testLog(logger.info, 'info msg simple')) {
         console.log('info failed');
+        console.log(getContents());
         process.exit(1);
       }
 
       if (!await testLog(logger.error, 'error msg simple')) {
         console.log('error failed');
+        console.log(getContents());
         process.exit(1);
       }
 
       if (!await testLog(logger.debug, 'debug msg simple')) {
         console.log('debug failed');
+        console.log(getContents());
         process.exit(1);
       }
 
       if (!await testLog(logger.trace, 'trace msg simple')) {
         console.log('trace failed');
+        console.log(getContents());
         process.exit(1);
       }
 
       if (!await testLog(logger.warn, 'warn msg simple')) {
         console.log('warn failed');
+        console.log(getContents());
         process.exit(1);
       }
 
       if (!await testLog(logger.fatal, 'fatal msg simple')) {
         console.log('fatal failed');
+        console.log(getContents());
         process.exit(1);
       }
 
       console.log('exiting - all tests OK');
+      console.log(getContents());
       process.exit(0);
   }
 }
