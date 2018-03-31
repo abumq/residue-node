@@ -24,7 +24,7 @@ matrix:
 
 before_script:
     - sudo sh test/start-server.sh
-    - sleep 1 && cat /tmp/logs/residue.log
+    - sudo cat /tmp/logs/residue.log
 
 cache:
   directories:
