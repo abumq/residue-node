@@ -23,7 +23,7 @@ matrix:
     - npm install residue-native@latest
 
 before_script:
-    - sudo sh test/start-server.sh
+    - sh test/start-server.sh
 
 cache:
   directories:
