@@ -4,7 +4,9 @@ const fs = require('fs');
 console.log(`version: ${residue.version()} (${residue.type()})`);
 
 
-if (process.platform === 'linux' || process.platform === 'darwin') {
+if (process.platform === 'linux' || process.platform === 'darwin--') {
+    console.log('connecting...');
+
     residue.connect({
       url: '127.0.0.1:8777',
     });
