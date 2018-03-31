@@ -9,5 +9,8 @@ if (process.platform === 'linux' || process.platform === 'darwin') {
       url: '127.0.0.1:8777',
     });
   
+    console.log('checking...');
     console.log(fs.readFileSync('/tmp/logs/residue.log'));
+    console.log('exiting');
+    process.exit(0);
 }
