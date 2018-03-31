@@ -7,15 +7,14 @@ const getContents = () => fs.readFileSync('test/residue.log').toString('utf8');
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const testLog = async (fn, msg) => {
-  const logger = residue.getLogger('default');
-
   fn(msg);
-  await sleep(2000);
+  await sleep(1000);
 
   return getContents().indexOf(msg) !== -1;
 }
+
 const detailedTest = async () => {
-    if (process.platform === 'linux' || process.platform === 'darwin--') {
+    if (process.platform === 'linux' || process.platform === 'darwin') {
       console.log('connecting...');
 
       residue.connect({
@@ -67,8 +66,17 @@ const detailedTest = async () => {
         process.exit(1);
       }
 
-      console.log('exiting - all tests OK');
+      // verbose manually
+      logger.verbose(1, 'verbose msg simple');
+      await sleep(1000);
+      if (getContents().indexOf('verbose msg simple') === -1) {
+        console.log('verbose failed');
+        console.log(getContents());
+        process.exit(1);
+      }
+
       console.log(getContents());
+      console.log('exiting - all tests OK');
       process.exit(0);
   }
 }

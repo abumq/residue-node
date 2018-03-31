@@ -1,7 +1,7 @@
 language: node_js
 sudo: required
 env:
-  - LIBRESIDUE_VERSION=2.1.2
+  - RESIDUE_VERSION=2.1.2
 
 node_js:
   - "7"
@@ -13,7 +13,7 @@ matrix:
   - os: linux
   - os: linux
     env:
-    - RESIDUE_VERSION=$LIBRESIDUE_VERSION
+    - NATIVE=true
     before_install:
     - sudo sh -c "$(curl -fsSL https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh)"
     - export LD_LIBRARY_PATH=/usr/local/lib/
@@ -22,7 +22,7 @@ matrix:
   - os: osx
   - os: osx
     env:
-    - RESIDUE_VERSION=$LIBRESIDUE_VERSION
+    - NATIVE=true
     before_install:
     - wget https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh
     - sudo sh install.sh $RESIDUE_VERSION

@@ -606,7 +606,7 @@ const Logger = function(id) {
     this.info = (format, ...args)            => this._write_log(CommonUtils.LoggingLevels.Info, 0, format, ...args);
     this.error = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Error, 0, format, ...args);
     this.debug = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Debug, 0, format, ...args);
-    this.warn = (format, ...args)            => this._write_log(CommonUtils.LoggingLevels.Warn, 0, format, ...args);
+    this.warn = (format, ...args)            => this._write_log(CommonUtils.LoggingLevels.Warning, 0, format, ...args);
     this.trace = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Trace, 0, format, ...args);
     this.fatal = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Fatal, 0, format, ...args);
     this.verbose = (vlevel, format, ...args) => this._write_log(CommonUtils.LoggingLevels.Verbose, vlevel, format, ...args);
