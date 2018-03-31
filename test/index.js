@@ -3,18 +3,18 @@ const fs = require('fs');
 
 console.log(`version: ${residue.version()} (${residue.type()})`);
 
-const getContents = () => fs.readFileSync('test/residue.log').toString('utf8');
-const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+if (process.platform === 'linux' || process.platform === 'darwin') {
+  const getContents = () => fs.readFileSync('test/residue.log').toString('utf8');
+  const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-const testLog = async (fn, msg) => {
-  fn(msg);
-  await sleep(1000);
+  const testLog = async (fn, msg) => {
+    fn(msg);
+    await sleep(1000);
 
-  return getContents().indexOf(msg) !== -1;
-}
+    return getContents().indexOf(msg) !== -1;
+  }
 
-const detailedTest = async () => {
-    if (process.platform === 'linux' || process.platform === 'darwin') {
+  const detailedTest = async () => {
       console.log('connecting...');
 
       residue.connect({
@@ -79,7 +79,7 @@ const detailedTest = async () => {
       console.log('exiting - all tests OK');
       process.exit(0);
   }
+
+  detailedTest();
+
 }
-
-detailedTest();
-
