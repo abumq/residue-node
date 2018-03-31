@@ -16,6 +16,8 @@ matrix:
     - RESIDUE_VERSION=$LIBRESIDUE_VERSION
     before_install:
     - sudo sh -c "$(curl -fsSL https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh)"
+    - export LD_LIBRARY_PATH=/usr/local/lib/
+    - ls -l /usr/local/lib/
     - npm install residue-native@latest
   - os: osx
   - os: osx
@@ -24,6 +26,8 @@ matrix:
     before_install:
     - wget https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh
     - sudo sh install.sh $RESIDUE_VERSION
+    - ls -l /usr/local/lib/
+    - export LD_LIBRARY_PATH=/usr/local/lib/
     - npm install residue-native@latest
 
 before_script:
