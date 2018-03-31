@@ -4,7 +4,7 @@
     "logging_port": 8778,
     "server_key": "048CB7050312DB329788CE1533C294A1F248F8A1BD6F611D7516803EDE271C65",
     "default_key_size": 256,
-    "enable_cli": true,
+    "enable_cli": false,
     "enable_dynamic_buffer": false,
     "allow_insecure_connection": true,
     "allow_unmanaged_loggers": true,
