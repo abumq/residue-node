@@ -10,7 +10,7 @@ const testLog = async (fn, msg) => {
   const logger = residue.getLogger('default');
 
   fn(msg);
-  await sleep(500);
+  await sleep(2000);
 
   return getContents().indexOf(msg) !== -1;
 }
