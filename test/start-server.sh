@@ -8,7 +8,7 @@ tar -xf residue-2.3.2-$TYPE-debug-x86_64.tar.gz
 
 # Start
 export RESIDUE_HOME=`pwd`/test/server/
-ls -l residue-2.3.2-$TYPE-debug-x86_64/
+residue-2.3.2-$TYPE-debug-x86_64/residue --version
 nohup residue-2.3.2-$TYPE-debug-x86_64/residue $RESIDUE_HOME/conf.json -v --force-without-root --residue-home=$RESIDUE_HOME &
 # nohup residue-$TYPE $RESIDUE_HOME/conf.json -v --force-without-root --residue-home=$RESIDUE_HOME &
 ls -l
