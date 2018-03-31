@@ -10,7 +10,7 @@ if (process.platform === 'linux' || process.platform === 'darwin') {
     });
   
     console.log('checking...');
-    console.log(fs.readFileSync('/tmp/logs/residue.log'));
+    console.log(fs.readFileSync('/tmp/logs/residue.log').toString('utf8'));
     console.log('exiting');
     process.exit(0);
 }
