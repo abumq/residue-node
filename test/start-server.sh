@@ -8,4 +8,4 @@ export RESIDUE_HOME=`pwd`/test/server/
 nohup residue-$TYPE $RESIDUE_HOME/conf.json -v --force-without-root --residue-home=$RESIDUE_HOME &
 ls -l
 cat nohup.out
-echo '' > /tmp/logs/residue.log
+echo '' > test/residue.log
