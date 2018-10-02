@@ -8,7 +8,7 @@
 [![GitHub license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/muflihun/residue-node/blob/master/LICENSE)
 [![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/MuflihunDotCom/25)
 
-A very simple, secure Node.js library to interact with residue seamlessly.
+Secure Node.js library to interact with residue server seamlessly.
 
 This module provides interface for connecting and interacting with residue server seamlessly, means, once you are connected this module takes care of expired tokens and clients and keep itself updated with latest tokens and ping server when needed to stay alive.
 
@@ -45,8 +45,11 @@ Returns logger class for logging interface
 
 ## Usage
 ```js
-var residue = require('residue');
-var logger = residue.getLogger('sample-app');
+const ResidueClient = require('residue');
+
+const residue = new ResidueClient();
+
+const logger = residue.getLogger('sample-app');
 
 const confFile = 'client.conf.json';
 if (residue.loadConfiguration(confFile)) {

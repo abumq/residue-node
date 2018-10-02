@@ -6,7 +6,7 @@
 // This module provides interface for connecting and interacting with
 // residue server seamlessly. Once you are connected this module
 // takes care of lost connections, expired clients
-// and keep itself updated with parameters and touch server when 
+// and keep itself updated with parameters and touch server when
 // needed to stay alive.
 //
 // Author: @abumusamq
@@ -16,7 +16,7 @@
 // https://github.com/muflihun/residue-node
 //
 
-"use strict"; 
+"use strict";
 
 const fs = require('fs');
 const path = require('path');
@@ -27,58 +27,19 @@ const NodeRSA = require('node-rsa');
 const CommonUtils = require('residue-utils');
 let crypto;
 try {
-    crypto = require('crypto');
+  crypto = require('crypto');
 } catch (err) {
-    console.log('residue package requires crypto (https://nodejs.org/api/crypto.html). It is disabled in your version of node!');
+  console.log('residue package requires crypto (https://nodejs.org/api/crypto.html). It is disabled in your version of node!');
 }
 
-const Params = {
-    // user provided options for seamless connection
-    //   app, host, connect_port
-    options: {},
-
-    // connecting object containing:
-    //   client_id, age, date_created, key, logging_port
-    connection: null,
-
-    // rsa_key is keypair object
-    rsa_key: null,
-
-    // server_rsa_key is keypair object
-    server_rsa_key: null,
-
-    // whether connected to the server or not
-    connected: false,
-
-    // Underlying sockets
-    connection_socket: new net.Socket(),
-    logging_socket: new net.Socket(),
-
-    // Debug logging
-    debugging: false,
-    verboseLevel: 0,
-
-    // Status for sockets
-    logging_socket_connected: false,
-
-    // callbacks on specific occasions
-    send_request_backlog_callbacks: [],
-    logging_socket_callbacks: [],
-    
-    // locks for mutex
-    locks: {},
-    
-};
-
-Params.locks[Params.connection_socket.address().port] = false;
-Params.locks[Params.logging_socket.address().port] = false;
-
+const DEBUGGING = true;
+const VERBOSE_LEVEL = 9;
 
 // Various connection types accepted by the server
 const ConnectType = {
-    Connect: 1,
-    Acknowledgement: 2,
-    Touch: 3
+  CONN: 1,
+  ACK: 2,
+  TOUCH: 3,
 };
 
 const Flag = {
@@ -91,550 +52,595 @@ const Flag = {
 const PACKET_DELIMITER = '\r\n\r\n';
 const TOUCH_THRESHOLD = 60; // should always be min(client_age) - max(client_age/2)
 
-// Utility static functions
-const Utils = {
-    log: (m) => console.log(m),
-
-    debugLog: (m) => {
-        if (Params.debugging) {
-            console.log(m);
-        }
-    },
-
-    traceLog: (m) => Utils.debugLog(`TRACE: ${m}`),
-
-    vLog: (l, m) => {
-        if (Params.debugging && l <= Params.verboseLevel) {
-            console.log(m);
-        }
-    },
-
-    hasFlag: (f) => {
-        if (Params.connection === null) {
-            return false;
-        }
-        return (Params.connection.flags & f) !== 0;
-    },
-
-    // Encode Base64
-    base64Encode: (str) => new Buffer(str).toString('base64'),
-
-    base64Decode: (encoded) => new Buffer(encoded, 'base64').toString('utf-8'),
-
-    // Get current date in microseconds
-    now: () => parseInt((new Date()).getTime() / 1000, 10),
-
-    getTimestamp: () => Utils.now(),
-
-    // Send request to the server
-    // This function decides whether to back-log the request or dispatch it to
-    // the server
-    sendRequest: (request, socket, nolock /* = false */, compress /* = false */) => {
-        if (typeof nolock === 'undefined') {
-            nolock = false;
-        }
-        if (typeof compress === 'undefined') {
-            compress = false;
-        }
-        if (!nolock && Params.locks[socket.address().port]) {
-            Params.send_request_backlog_callbacks.push(function() {
-                Utils.debugLog('Sending request via callback');
-                Utils.sendRequest(request, socket, false, compress);
-            });
-            return;
-        }
-        let finalRequest = JSON.stringify(request);
-        if (compress) {
-            finalRequest = new Buffer(zlib.deflateSync(finalRequest)).toString('base64');
-        }
-        const encryptedRequest = Utils.encrypt(finalRequest);
-        Utils.vLog(9, 'Payload (Plain): ' + encryptedRequest);
-        Utils.vLog(8, 'Locking ' + socket.address().port);
-        Params.locks[socket.address().port] = true;
-        try {
-            Utils.debugLog('Sending...');
-            socket.write(encryptedRequest, 'utf-8', function() {
-                Params.locks[socket.address().port] = false;
-                Utils.vLog(8, 'Unlocking ' + socket.address().port);
-                setTimeout(function() {
-                    if (Params.send_request_backlog_callbacks.length > 0) {
-                        const cb = Params.send_request_backlog_callbacks.splice(0, 1)[0];
-                        cb();
-                    }
-                }, 10);
-            });
-        } catch (e) {
-            Utils.vLog(8, 'Unlocking ' + socket.address().port + ' [because of exception]');
-            Params.locks[socket.address().port] = false;
-            Utils.debugLog('Error while writing to socket...');
-            Utils.debugLog(e);
-        }
-    },
-
-    getCipherAlgorithm: (keyHex) => {
-      return `aes-${(keyHex.length / 2) * 8}-cbc`;
-    },
-
-    encrypt: (request) => {
-      let encryptedRequest;
-      try {
-          let iv = new Buffer(crypto.randomBytes(16), 'hex');
-          let cipher = crypto.createCipheriv(Utils.getCipherAlgorithm(Params.connection.key), new Buffer(Params.connection.key, 'hex'), iv);
-          return iv.toString('hex') + ':' + Params.connection.client_id + ':' + cipher.update(request, 'utf-8', 'base64') + cipher.final('base64') + PACKET_DELIMITER;
-      } catch (err) {
-          Utils.debugLog(err);
-      }
-      return '';
-    },
-
-    // Decrypt response from the server using symmetric key
-    decrypt: (data) => {
-        if (Params.connection === null) {
-            return null;
-        }
-        try {
-            const resp = data.split(':');
-            const iv = resp[0];
-            const clientId = resp.length === 3 ? resp[1] : '';
-            const actualData = resp.length === 3 ? resp[2] : resp[1];
-            const binaryData = new Buffer(actualData, 'base64');
-            Utils.vLog(8, 'Reading ' + data.trim() + ' >>> parts: ' + iv + ' >>> ' + actualData.trim() + ' >>> ' + Params.connection.key);
-            let decipher = crypto.createDecipheriv(Utils.getCipherAlgorithm(Params.connection.key), new Buffer(Params.connection.key, 'hex'), new Buffer(iv, 'hex'));
-            decipher.setAutoPadding(false);
-
-            let plain = decipher.update(binaryData, 'base64', 'utf-8');
-            plain += decipher.final('utf-8');
-            // Remove non-ascii characters from decrypted text ! Argggh!
-            plain = plain.replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '');
-            return plain;
-        } catch (err) {
-            Utils.vLog(9, 'decrypt-error: ');
-            Utils.vLog(9, err);
-        }
-
-        return null;
-    },
-
-    extractPublicKey: (privateKey) => {
-        const key = new NodeRSA(privateKey.key);
-        return key.exportKey('public');
-    },
-
-    generateKeypair: (keySize) => {
-        const key = new NodeRSA({b: keySize});
-        key.setOptions({encryptionScheme: 'pkcs1'});
-        Utils.debugLog('Key generated');
-        return {
-            privatePEM: key.exportKey('private'),
-            publicPEM: key.exportKey('public'),
-        };
-    },
-
-    // Decrypt response from the server using asymetric key
-    decryptRSA: (response, privateKey) => {
-        try {
-            return crypto.privateDecrypt(privateKey, new Buffer(response.toString(), 'base64')).toString('utf-8');
-        } catch (err) {
-            Utils.log(err);
-        }
-        return null;
-    },
-
-    // Encrypts string using key
-    encryptRSA: (str, publicKey) => {
-        try {
-            return crypto.publicEncrypt(publicKey, new Buffer(str, 'utf-8')).toString('base64');
-        } catch (err) {
-            Utils.log(err);
-        }
-        return null;
-    }
+const isNormalInteger = (str) => {
+  var n = Math.floor(Number(str));
+  return String(n) === str && n >= 0;
 };
 
-// Handle response from the server on connection requests
-Params.connection_socket.on('data', (data) => {
-    let decryptedData = Utils.decrypt(data.toString());
-    if (decryptedData === null) {
-        decryptedData = Utils.decryptRSA(data, Params.rsa_key.privateKey);
+// Logger interface for user to send log messages to server
+const Logger = function(id, client) {
+  this.id = id;
+  this.client = client;
+
+  this.info = (format, ...args) => this._write(CommonUtils.LoggingLevels.Info, 0, format, ...args);
+  this.error = (format, ...args) => this._write(CommonUtils.LoggingLevels.Error, 0, format, ...args);
+  this.debug = (format, ...args) => this._write(CommonUtils.LoggingLevels.Debug, 0, format, ...args);
+  this.warn = (format, ...args) => this._write(CommonUtils.LoggingLevels.Warning, 0, format, ...args);
+  this.trace = (format, ...args) => this._write(CommonUtils.LoggingLevels.Trace, 0, format, ...args);
+  this.fatal = (format, ...args) => this._write(CommonUtils.LoggingLevels.Fatal, 0, format, ...args);
+  this.verbose = (vlevel, format, ...args) => this._write(CommonUtils.LoggingLevels.Verbose, vlevel, format, ...args);
+
+  //private members
+
+  this._write = (level, vlevel, format, ...args) => client._sendLogRequest(level,
+    this.id,
+    this._logSources.getSourceFile(),
+    this._logSources.getSourceLine(),
+    this._logSources.getSourceFunc(),
+    vlevel,
+    undefined,
+    format,
+    ...args);
+
+  this._logSources = {
+    baseIndex: 6,
+    getSourceFile: () => CommonUtils.getSourceFile(this._logSources.baseIndex),
+    getSourceLine: () => CommonUtils.getSourceLine(this._logSources.baseIndex),
+    getSourceFunc: () => CommonUtils.getSourceFunc(this._logSources.baseIndex),
+  };
+};
+
+// Utility static functions
+const Utils = {
+  log: (m, ...args) => {
+    console.log(m, ...args);
+  },
+
+  debugLog: (m, ...args) => {
+    if (DEBUGGING) {
+      console.log(`DEBUG: `, m, ...args);
     }
-    if (decryptedData === null) {
-        Utils.log('Unable to read response: ' + data);
-        return;
+  },
+
+  traceLog: (m, ...args) => {
+    if (DEBUGGING) {
+      console.log(`TRACE: `, m, ...args);
     }
-    const dataJson = JSON.parse(decryptedData.toString());
-    Utils.vLog(8, 'Connection: ');
-    Utils.vLog(8, dataJson);
-    if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 0) {
-        Utils.debugLog('Connecting to Residue Server...(ack)');
-        
-         // connection re-estabilished
-        Params.disconnected_by_remote = false;
-        
-        Params.connection = dataJson;
-        // Need to acknowledge
-        const request = {
-            _t: Utils.getTimestamp(),
-            type: ConnectType.Acknowledgement,
-            client_id: Params.connection.client_id
-        };
-        Utils.sendRequest(request, Params.connection_socket, true);
-    } else if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 1) {
-        Utils.debugLog('Estabilishing full connection...');
-        Params.connection = dataJson;
-        Params.connected = true;
-        Utils.vLog(8, `Connection socket: ${Params.connection_socket.address().port}`);
-        if (!Params.logging_socket_connected) {
-            Params.logging_socket.connect(Params.connection.logging_port, Params.options.host, function() {
-                Utils.log(`Connected to Residue (v${Params.connection.server_info.version})!`);
-                Params.logging_socket_connected = true;
-                Utils.vLog(8, `Logging socket: ${Params.logging_socket.address().port}`);
-                Params.connecting = false;
-                const callbackCounts = Params.logging_socket_callbacks.length;
-                for (let idx = 0; idx < callbackCounts; ++idx) {
-                    const cb = Params.logging_socket_callbacks.splice(0, 1)[0];
-                    cb();
-                }
-            });
-        } else {
-            Params.connecting = false;
-            const callbackCounts = Params.logging_socket_callbacks.length;
-            for (let idx = 0; idx < callbackCounts; ++idx) {
-                const cb = Params.logging_socket_callbacks.splice(0, 1)[0];
-                cb();
-            }
-        }
-    } else {
-        Utils.log('Error while connecting to server: ');
-        Utils.log(dataJson);
-        Params.connecting = false;
+  },
+
+  vLog: (level, m, ...args) => {
+    if (DEBUGGING && level <= VERBOSE_LEVEL) {
+      console.log(`VERBOSE ${level}: `, m, ...args);
     }
-});
+  },
 
-// Handle when connection is destroyed
-Params.connection_socket.on('close', () => {
-    Utils.log('Remote connection closed!');
-    if (Params.connected) {
-        Params.disconnected_by_remote = true;
+  hasFlag: (f, connection) => {
+    if (connection === null) {
+      return false;
     }
-    disconnect();
-});
+    return (connection.flags & f) !== 0;
+  },
 
-Params.connection_socket.on('error', (error) => {
-    Utils.log('Error occurred while connecting to residue server');
-    Utils.log(error);
-});
+  // Encode Base64
+  base64Encode: str => new Buffer(str).toString('base64'),
 
+  base64Decode: encoded => new Buffer(encoded, 'base64').toString('utf-8'),
 
-// Handle destruction of connection to logging server
-Params.logging_socket.on('close', () => {
-    Params.logging_socket_connected = false;
-});
+  getCipherAlgorithm: keyHex => `aes-${(keyHex.length / 2) * 8}-cbc`,
 
-
-// Notice we do not have any handler for logging_socket response
-// this is because that is async connection
-Params.logging_socket.on('data', (data) => {
-});
-
-const shouldTouch = () => {
-    if (!Params.connected || Params.connecting) {
-        // Can't touch 
-        return false;
+  encrypt: (request, connection) => {
+    let encryptedRequest;
+    try {
+      let iv = new Buffer(crypto.randomBytes(16), 'hex');
+      let cipher = crypto.createCipheriv(Utils.getCipherAlgorithm(connection.key), new Buffer(connection.key, 'hex'), iv);
+      return iv.toString('hex') + ':' + connection.client_id + ':' + cipher.update(request, 'utf-8', 'base64') + cipher.final('base64') + PACKET_DELIMITER;
+    } catch (err) {
+      Utils.debugLog(err);
     }
-    if (Params.connection.age === 0) {
-        // Always alive!
-        return false;
-    }
-    return Params.connection.age - (Utils.now() - Params.connection.date_created) < TOUCH_THRESHOLD;
-}
+    return '';
+  },
 
-const touch = () => {
-    if (Params.connected) {
-        if (Params.connecting) {
-           Utils.debugLog('Still touching...');
-           return;
-        }
-        if (isClientValid()) {
-            Utils.debugLog('Touching...');
-            const request = {
-                _t: Utils.getTimestamp(),
-                type: ConnectType.Touch,
-                client_id: Params.connection.client_id
-            };
-            Utils.sendRequest(request, Params.connection_socket);
-            Params.connecting = true;
-        } else {
-            Utils.log('Could not touch, client already dead ' + (Params.connection.date_created + Params.connection.age) + ' < ' + Utils.now());
-        }
+  // Decrypt response from the server using symmetric key
+  decrypt: (data, connection) => {
+    if (connection === null) {
+      return null;
     }
-}
+    try {
+      const resp = data.split(':');
+      const iv = resp[0];
+      const clientId = resp.length === 3 ? resp[1] : '';
+      const actualData = resp.length === 3 ? resp[2] : resp[1];
+      const binaryData = new Buffer(actualData, 'base64');
+      Utils.vLog(8, 'Reading ' + data.trim() + ' >>> parts: ' + iv + ' >>> ' + actualData.trim() + ' >>> ' + connection.key);
+      let decipher = crypto.createDecipheriv(Utils.getCipherAlgorithm(connection.key), new Buffer(connection.key, 'hex'), new Buffer(iv, 'hex'));
+      decipher.setAutoPadding(false);
 
-const isClientValid = () => {
-    if (!Params.connected) {
-        return false;
+      let plain = decipher.update(binaryData, 'base64', 'utf-8');
+      plain += decipher.final('utf-8');
+      // Remove non-ascii characters from decrypted text ! Argggh!
+      plain = plain.replace(/[^A-Za-z 0-9 \.,\?""!@#\$%\^&\*\(\)-_=\+;:<>\/\\\|\}\{\[\]`~]*/g, '');
+      return plain;
+    } catch (err) {
+      Utils.vLog(9, 'decrypt-error: ', err);
     }
-    if (Params.connection.age == 0) {
-        return true;
-    }
-    return Params.connection.date_created + Params.connection.age >= Utils.now();
-}
 
-// Returns UTC time
-const getCurrentTimeUTC = () => {
+    return null;
+  },
+
+  extractPublicKey: privateKey => new NodeRSA(privateKey.key).exportKey('public'),
+
+  generateKeypair: (keySize) => {
+    const key = new NodeRSA({
+      b: keySize
+    });
+    key.setOptions({
+      encryptionScheme: 'pkcs1'
+    });
+    Utils.debugLog('Key generated');
+    return {
+      privatePEM: key.exportKey('private'),
+      publicPEM: key.exportKey('public'),
+    };
+  },
+
+  // Decrypt response from the server using asymetric key
+  decryptRSA: (response, privateKey) => {
+    try {
+      return crypto.privateDecrypt(privateKey, new Buffer(response.toString(), 'base64')).toString('utf-8');
+    } catch (err) {
+      Utils.log(err);
+    }
+    return null;
+  },
+
+  // Encrypts string using key
+  encryptRSA: (str, publicKey) => {
+    try {
+      return crypto.publicEncrypt(publicKey, new Buffer(str, 'utf-8')).toString('base64');
+    } catch (err) {
+      Utils.log(err);
+    }
+    return null;
+  },
+
+  // Get current date in microseconds
+  now: () => parseInt((new Date()).getTime() / 1000, 10),
+
+  getTimestamp: () => Utils.now(),
+
+  // Returns UTC time
+  getCurrentTimeUTC: () => {
     const newDate = new Date();
     return newDate.getTime() + newDate.getTimezoneOffset() * 60000;
-}
+  },
+};
 
-// Send log request to the server. No response is expected
-const sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime, format, ...args) => {
+const ResidueClient = function() {
+
+  this.params = {
+    // user provided options for seamless connection
+    //   app, host, connect_port
+    options: {},
+
+    // connecting object containing:
+    //   client_id, age, date_created, key, logging_port
+    connection: null,
+
+    // rsaKey is keypair object
+    rsaKey: null,
+
+    // serverRsaKey is keypair object
+    serverRsaKey: null,
+
+    // whether connected to the server or not
+    connected: false,
+
+    // Underlying sockets
+    connectionSocket: new net.Socket(),
+    loggingSocket: new net.Socket(),
+
+    // Status for sockets
+    isLoggingSocketConnected: false,
+
+    // callbacks on specific occasions
+    sendRequestBacklogCallbacks: [],
+    loggingSocketCallbacks: [],
+
+    // locks for mutex
+    locks: {},
+  };
+
+  this.params.locks[this.params.connectionSocket.address().port] = false;
+  this.params.locks[this.params.loggingSocket.address().port] = false;
+
+  // Send request to the server
+  // This function decides whether to back-log the request or dispatch it to
+  // the server
+  this._sendRequest = (request, socket, nolock /* = false */ , compress /* = false */ ) => {
+    if (typeof nolock === 'undefined') {
+      nolock = false;
+    }
+    if (typeof compress === 'undefined') {
+      compress = false;
+    }
+    if (!nolock && this.params.locks[socket.address().port]) {
+      this.params.sendRequestBacklogCallbacks.push(() => {
+        Utils.debugLog('Sending request via callback');
+        this.sendRequest(request, socket, false, compress);
+      });
+      return;
+    }
+    let finalRequest = JSON.stringify(request);
+    if (compress) {
+      finalRequest = new Buffer(zlib.deflateSync(finalRequest)).toString('base64');
+    }
+    const encryptedRequest = Utils.encrypt(finalRequest, this.params.connection);
+    Utils.vLog(9, 'Payload (Plain): ', encryptedRequest);
+    Utils.vLog(8, 'Locking ' + socket.address().port);
+    this.params.locks[socket.address().port] = true;
+    try {
+      Utils.debugLog('Sending...');
+      const self = this;
+      socket.write(encryptedRequest, 'utf-8', () => {
+        self.params.locks[socket.address().port] = false;
+        Utils.vLog(8, 'Unlocking ' + socket.address().port);
+        setTimeout(() => {
+          if (self.params.sendRequestBacklogCallbacks.length > 0) {
+            const cb = this.params.sendRequestBacklogCallbacks.splice(0, 1)[0];
+            cb();
+          }
+        }, 10);
+      });
+    } catch (e) {
+      Utils.vLog(8, 'Unlocking ' + socket.address().port + ' [because of exception]', e);
+      this.params.locks[socket.address().port] = false;
+      Utils.debugLog('Error while writing to socket...');
+      Utils.debugLog(e);
+    }
+  };
+
+  // Handle response from the server on connection requests
+  this.params.connectionSocket.on('data', (data) => {
+    let decryptedData = Utils.decrypt(data.toString(), this.params.connection);
+    if (decryptedData === null) {
+      decryptedData = Utils.decryptRSA(data, this.params.rsaKey.privateKey);
+    }
+    if (decryptedData === null) {
+      Utils.log('Unable to read response: ' + data);
+      return;
+    }
+    const dataJson = JSON.parse(decryptedData.toString());
+    Utils.vLog(8, 'Connection: ', dataJson);
+    if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 0) {
+      Utils.debugLog('Connecting to Residue Server...(ack)');
+
+      // connection re-estabilished
+      this.params.disconnected_by_remote = false;
+
+      this.params.connection = dataJson;
+      // Need to acknowledge
+      const request = {
+        _t: Utils.getTimestamp(),
+        type: ConnectType.ACK,
+        client_id: this.params.connection.client_id
+      };
+      this._sendRequest(request, this.params.connectionSocket, true);
+    } else if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 1) {
+      Utils.debugLog('Estabilishing full connection...');
+      this.params.connection = dataJson;
+      this.params.connected = true;
+      Utils.vLog(8, `Connection socket: ${this.params.connectionSocket.address().port}`);
+      if (!this.params.isLoggingSocketConnected) {
+        this.params.loggingSocket.connect(this.params.connection.logging_port, this.params.options.host, () => {
+          Utils.log(`Connected to Residue (v${this.params.connection.server_info.version})!`);
+          this.params.isLoggingSocketConnected = true;
+          Utils.vLog(8, `Logging socket: ${this.params.loggingSocket.address().port}`);
+          this.params.connecting = false;
+          const callbackCounts = this.params.loggingSocketCallbacks.length;
+          for (let idx = 0; idx < callbackCounts; ++idx) {
+            const cb = this.params.loggingSocketCallbacks.splice(0, 1)[0];
+            cb();
+          }
+        });
+      } else {
+        this.params.connecting = false;
+        const callbackCounts = this.params.loggingSocketCallbacks.length;
+        for (let idx = 0; idx < callbackCounts; ++idx) {
+          // trigger all the pending callbacks from backlog
+          this.params.loggingSocketCallbacks.splice(0, 1)[0]();
+        }
+      }
+    } else {
+      Utils.log('Error while connecting to server: ');
+      Utils.log(dataJson);
+      this.params.connecting = false;
+    }
+  });
+
+  // Handle when connection is destroyed
+  this.params.connectionSocket.on('close', () => {
+    Utils.log('Remote connection closed!');
+    if (this.params.connected) {
+      this.params.disconnected_by_remote = true;
+    }
+    this.disconnect();
+  });
+
+  this.params.connectionSocket.on('error', (error) => {
+    Utils.log('Error occurred while connecting to residue server');
+    Utils.log(error);
+  });
+
+  // Handle destruction of connection to logging server
+  this.params.loggingSocket.on('close', () => {
+    this.params.isLoggingSocketConnected = false;
+  });
+
+  // Notice we do not have any handler for loggingSocket response
+  // this is because that is async connection
+  this.params.loggingSocket.on('data', () => {});
+
+  this._shouldTouch = () => {
+    if (!this.params.connected || this.params.connecting) {
+      // Can't touch
+      return false;
+    }
+    if (this.params.connection.age === 0) {
+      // Always alive!
+      return false;
+    }
+    return this.params.connection.age - (Utils.now() - this.params.connection.date_created) < TOUCH_THRESHOLD;
+  };
+
+  this._touch = () => {
+    if (this.params.connected) {
+      if (this.params.connecting) {
+        Utils.debugLog('Still touching...');
+        return;
+      }
+      if (this._isClientValid()) {
+        Utils.debugLog('Touching...');
+        const request = {
+          _t: Utils.getTimestamp(),
+          type: ConnectType.TOUCH,
+          client_id: this.params.connection.client_id
+        };
+        this._sendRequest(request, this.params.connectionSocket);
+        this.params.connecting = true;
+      } else {
+        Utils.log('Could not touch, client already dead ' + (this.params.connection.date_created + this.params.connection.age) + ' < ' + Utils.now());
+      }
+    }
+  };
+
+  this._isClientValid = () => {
+    if (!this.params.connected) {
+      return false;
+    }
+    if (this.params.connection.age == 0) {
+      return true;
+    }
+    return this.params.connection.date_created + this.params.connection.age >= Utils.now();
+  };
+
+  // Send log request to the server. No response is expected
+  this._sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime, format, ...args) => {
     let datetime = logDatetime;
     if (typeof datetime === 'undefined') {
-        datetime = Params.options.utc_time ? getCurrentTimeUTC() : new Date().getTime();
-        if (Params.options.time_offset) {
-            datetime += (1000 * Params.options.time_offset); // offset is in seconds
-        }
+      datetime = this.params.options.utc_time ? Utils.getCurrentTimeUTC() : new Date().getTime();
+      if (this.params.options.time_offset) {
+        datetime += (1000 * this.params.options.time_offset); // offset is in seconds
+      }
     }
-    if (Params.connecting) {
-       Utils.debugLog('Still connecting...');
-       Params.logging_socket_callbacks.push(() => {
-            sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
-       });
-       return;
+    if (this.params.connecting) {
+      Utils.debugLog('Still connecting...');
+      this.params.loggingSocketCallbacks.push(() => {
+        this._sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
+      });
+      return;
     }
 
-    if (!Params.connected) {
-        Utils.log('Not connected to the server yet');
-        if (Params.disconnected_by_remote) {
-            Utils.debugLog('Queueing...');
-            Params.logging_socket_callbacks.push(() => {
-                 sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
-            });
-            const totalListener = Params.connection_socket.listenerCount('connect');
-            if (totalListener >= 1) {
-                Utils.log('Checking for connection...' + totalListener);
-                Params.connection_socket.emit('connect');
-            } else {
-                    Utils.log('Retrying to connect...');
-                connect(Params.options);
-            }
+    if (!this.params.connected) {
+      Utils.log('Not connected to the server yet');
+      if (this.params.disconnected_by_remote) {
+        Utils.debugLog('Queueing...');
+        this.params.loggingSocketCallbacks.push(() => {
+          this._sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
+        });
+        const totalListener = this.params.connectionSocket.listenerCount('connect');
+        if (totalListener >= 1) {
+          Utils.log('Checking for connection...' + totalListener);
+          this.params.connectionSocket.emit('connect');
+        } else {
+          Utils.log('Retrying to connect...');
+          connect(this.params.options);
         }
-        return;
+      }
+      return;
     }
 
     Utils.debugLog('Checking health...[' + loggerId + ']');
 
-    if (!isClientValid()) {
-        Utils.debugLog('Resetting connection...');
-        Params.logging_socket_callbacks.push(() => {
-            Utils.debugLog('Sending log from log callback... [' + loggerId + ']');
-            sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
-        });
-        Utils.debugLog('Destroying connection socket');
-        Params.connection_socket.destroy();
-        Params.logging_socket.destroy();
-        disconnect();
-        connect(Params.options);
-        return;
+    if (!this._isClientValid()) {
+      Utils.debugLog('Resetting connection...');
+      this.params.loggingSocketCallbacks.push(() => {
+        Utils.debugLog('Sending log from log callback... [' + loggerId + ']');
+        sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
+      });
+      Utils.debugLog('Destroying connection socket');
+      this.params.connectionSocket.destroy();
+      this.params.loggingSocket.destroy();
+      disconnect();
+      connect(this.params.options);
+      return;
     }
 
-    if (shouldTouch()) {
-        Utils.debugLog('Touching first...');
-        Params.logging_socket_callbacks.push(() => {
-            Utils.debugLog('Sending log from touch callback... [' + loggerId + ']');
-            sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
-        });
-        touch();
-        return;
+    if (this._shouldTouch()) {
+      Utils.debugLog('Touching first...');
+      this.params.loggingSocketCallbacks.push(() => {
+        Utils.debugLog('Sending log from touch callback... [' + loggerId + ']');
+        this._sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
+      });
+      this._touch();
+      return;
     }
 
-    Utils.debugLog('Sending log request [' + loggerId  + ']...');
+    Utils.debugLog('Sending log request [' + loggerId + ']...');
 
     const fullMessage = CommonUtils.translateArgs(true, ...args);
     const request = {
-        _t: Utils.getTimestamp(),
-        datetime: datetime,
-        logger: loggerId,
-        msg: util.format(format, ...fullMessage),
-        file: sourceFile,
-        line: sourceLine,
-        func: sourceFunc,
-        app: Params.options.application_id,
-        level: level,
+      _t: Utils.getTimestamp(),
+      datetime: datetime,
+      logger: loggerId,
+      msg: util.format(format, ...fullMessage),
+      file: sourceFile,
+      line: sourceLine,
+      func: sourceFunc,
+      app: this.params.options.application_id,
+      level: level,
     };
     if (typeof verboseLevel !== 'undefined') {
-        request.vlevel = verboseLevel;
+      request.vlevel = verboseLevel;
     }
-    Utils.sendRequest(request, Params.logging_socket, false, Utils.hasFlag(Flag.COMPRESSION));
-}
+    this._sendRequest(request, this.params.loggingSocket, false, Utils.hasFlag(Flag.COMPRESSION, this.params.connection));
+  };
 
-const isNormalInteger = (str) => {
-    var n = Math.floor(Number(str));
-    return String(n) === str && n >= 0;
-}
+  // public exported functions
 
-const loadConfiguration = (jsonOrFilename) => {
+  this.version = () => require('./../package.json').version;
+
+  this.type = () => 'js';
+
+  this.isConnected = () => this.params.connected;
+
+  // Securily connect to residue server using defined options
+  this.connect = (options) => {
+    if (this.params.connected && this.params.connection !== null) {
+      Utils.log('Already connected to the server with ID [' + this.params.connection.client_id + ']')
+      return;
+    }
+    this.params.connecting = true;
+    try {
+      this.params.options = typeof options === 'undefined' ? this.params.options : options;
+      // Normalize
+      if (typeof this.params.options.url !== 'undefined') {
+        const parts = this.params.options.url.split(':');
+        if (parts.length < 2 || !isNormalInteger(parts[1])) {
+          throw 'Invalid URL format for residue';
+        }
+        this.params.options.host = parts[0];
+        this.params.options.connect_port = parseInt(parts[1]);
+      }
+      if (typeof this.params.options.client_id === 'undefined' &&
+        typeof this.params.options.client_private_key === 'undefined') {
+        // Generate new key for key-exchange
+        const keySize = this.params.options.rsaKey_size || 2048;
+        Utils.log('Generating ' + keySize + '-bit key...');
+        const generatedKey = Utils.generateKeypair(keySize);
+        this.params.rsaKey = {
+          isGenerated: true,
+          privateKey: {
+            key: generatedKey.privatePEM,
+            padding: crypto.constants.RSA_PKCS1_PADDING,
+          },
+          publicKey: {
+            key: generatedKey.publicPEM,
+            padding: crypto.constants.RSA_PKCS1_PADDING,
+          }
+        };
+        Utils.debugLog('Key generated');
+      } else {
+        this.params.rsaKey = {
+          generated: false,
+          privateKey: {
+            key: fs.readFileSync(path.resolve(this.params.options.client_private_key)).toString(),
+            passphrase: this.params.options.client_key_secret ?
+              new Buffer(this.params.options.client_key_secret, 'hex').toString('utf-8') : null,
+            padding: crypto.constants.RSA_PKCS1_PADDING,
+          },
+          publicKey: {
+            padding: crypto.constants.RSA_PKCS1_PADDING,
+          }
+        };
+        if (typeof this.params.options.client_public_key !== 'undefined') {
+          this.params.rsaKey.publicKey.key = fs.readFileSync(path.resolve(this.params.options.client_public_key)).toString();
+        } else {
+          if (this.params.rsaKey.privateKey.passphrase === null) {
+            this.params.rsaKey.publicKey.key = Utils.extractPublicKey(this.params.rsaKey.privateKey);
+          } else {
+            throw 'ERROR: You specified client_key_secret and did not provide client_public_key. We cannot extract public-key for encrypted private keys. Please provide public key manually';
+          }
+        }
+        Utils.vLog(8, 'Known client...');
+      }
+      if (typeof this.params.options.server_public_key !== 'undefined') {
+        this.params.serverRsaKey = {
+          publicKey: {
+            key: fs.readFileSync(path.resolve(this.params.options.server_public_key)).toString(),
+            padding: crypto.constants.RSA_PKCS1_PADDING,
+          },
+        };
+      }
+      Utils.log('Intializing connection...');
+      this.params.connectionSocket.connect(this.params.options.connect_port, this.params.options.host, () => {
+        let request = {
+          _t: Utils.getTimestamp(),
+          type: ConnectType.CONN,
+        };
+        if (this.params.rsaKey.isGenerated) {
+          request.rsa_public_key = Utils.base64Encode(this.params.rsaKey.publicKey.key);
+        } else {
+          request.client_id = this.params.options.client_id;
+        }
+        let r = JSON.stringify(request);
+        if (this.params.serverRsaKey !== null) {
+          r = Utils.encryptRSA(r, this.params.serverRsaKey.publicKey);
+        }
+        const fullReq = r + PACKET_DELIMITER;
+        this.params.connectionSocket.write(fullReq);
+      });
+    } catch (e) {
+      Utils.log('Error occurred while connecting to residue server');
+      Utils.log(e);
+      this.params.connecting = false;
+    }
+  };
+
+  // Disconnect from the server safely.
+  this.disconnect = () => {
+    Utils.traceLog('disconnect()');
+    this.params.connected = false;
+    this.params.connecting = false;
+    this.params.connection = null;
+    this.params.isLoggingSocketConnected = false;
+    if (this.params.connected) {
+      try {
+        if (this.params.connectionSocket.destroyed) {
+          Utils.log('Disconnecting gracefully...');
+          this.params.loggingSocket.end();
+        } else {
+          Utils.log('Disconnecting...');
+          // Following will call 'close' -> disconnect -> gracefully close
+          this.params.connectionSocket.end();
+        }
+      } catch (err) {
+
+      }
+    }
+  };
+
+  this.loadConfiguration = (jsonOrFilename) => {
     const conf = CommonUtils.confJson(jsonOrFilename);
     if (conf === false) {
-        console.error('Please select JSON or JSON filename that contains configurations');
-        return false;
+      console.error('Please select JSON or JSON filename that contains configurations');
+      return false;
     }
-    Params.options = JSON.parse(conf);
+    this.params.options = JSON.parse(conf);
     Utils.log('Configuration loaded');
     return true;
-}
+  };
 
-// Securily connect to residue server using defined options
-const connect = (options) => {
-    if (Params.connected && Params.connection !== null) {
-        Utils.log('Already connected to the server with ID [' + Params.connection.client_id + ']')
-        return;
-    }
-    Params.connecting = true;
-    try {
-        Params.options = typeof options === 'undefined' ? Params.options : options;
-        // Normalize
-        if (typeof Params.options.url !== 'undefined') {
-          const parts = Params.options.url.split(':');
-          if (parts.length < 2 || !isNormalInteger(parts[1])) {
-            throw 'Invalid URL format for residue';
-          }
-          Params.options.host = parts[0];
-          Params.options.connect_port = parseInt(parts[1]);
-        }
-        if (typeof Params.options.client_id === 'undefined' &&
-                typeof Params.options.client_private_key === 'undefined') {
-            // Generate new key for key-exchange
-            const keySize = Params.options.rsa_key_size || 2048;
-            Utils.log('Generating ' + keySize + '-bit key...');
-            const generatedKey = Utils.generateKeypair(keySize);
-            Params.rsa_key = {
-                isGenerated: true,
-                privateKey: {
-                    key: generatedKey.privatePEM,
-                    padding: crypto.constants.RSA_PKCS1_PADDING,
-                },
-                publicKey: {
-                    key: generatedKey.publicPEM,
-                    padding: crypto.constants.RSA_PKCS1_PADDING,
-                }
-            };
-            Utils.debugLog('Key generated');
-        } else {
-            Params.rsa_key = {
-                generated: false,
-                privateKey: {
-                    key: fs.readFileSync(path.resolve(Params.options.client_private_key)).toString(),
-                    passphrase: Params.options.client_key_secret
-                        ? new Buffer(Params.options.client_key_secret, 'hex').toString('utf-8') : null,
-                    padding: crypto.constants.RSA_PKCS1_PADDING,
-                },
-                publicKey: {
-                    padding: crypto.constants.RSA_PKCS1_PADDING,
-                }
-            };
-            if (typeof Params.options.client_public_key !== 'undefined') {
-                Params.rsa_key.publicKey.key = fs.readFileSync(path.resolve(Params.options.client_public_key)).toString();
-            } else {
-                if (Params.rsa_key.privateKey.passphrase === null) {
-                    Params.rsa_key.publicKey.key = Utils.extractPublicKey(Params.rsa_key.privateKey);
-                } else {
-                    throw 'ERROR: You specified client_key_secret and did not provide client_public_key. We cannot extract public-key for encrypted private keys. Please provide public key manually';
-                }
-            }
-            Utils.vLog(8, 'Known client...');
-        }
-        if (typeof Params.options.server_public_key !== 'undefined') {
-            Params.server_rsa_key = {
-                publicKey: {
-                    key: fs.readFileSync(path.resolve(Params.options.server_public_key)).toString(),
-                    padding: crypto.constants.RSA_PKCS1_PADDING,
-                },
-            };
-        }
-        Utils.log('Intializing connection...');
-        Params.connection_socket.connect(Params.options.connect_port, Params.options.host, () => {
-            let request = {
-                _t: Utils.getTimestamp(),
-                type: ConnectType.Connect,
-            };
-            if (Params.rsa_key.isGenerated) {
-                request.rsa_public_key = Utils.base64Encode(Params.rsa_key.publicKey.key);
-            } else {
-                request.client_id = Params.options.client_id;
-            }
-            let r = JSON.stringify(request);
-            if (Params.server_rsa_key !== null) {
-                r = Utils.encryptRSA(r, Params.server_rsa_key.publicKey);
-            }
-            const fullReq = r + PACKET_DELIMITER;
-            Params.connection_socket.write(fullReq);
-        });
-    } catch (e) {
-        Utils.log('Error occurred while connecting to residue server');
-        Utils.log(e);
-        Params.connecting = false;
-    }
-}
+  this.getLogger = id => new Logger(id, this);
+};
 
-// Disconnect from the server safely.
-const disconnect = () => {
-    Utils.traceLog('disconnect()');
-    Params.connected = false;
-    Params.connecting = false;
-    Params.connection = null;
-    Params.logging_socket_connected = false;
-    if (Params.connected) {
-        try {
-            if (Params.connection_socket.destroyed) {
-                Utils.log('Disconnecting gracefully...');
-                Params.logging_socket.end();
-            } else {
-                Utils.log('Disconnecting...');
-                // Following will call 'close' -> disconnect -> gracefully close
-                Params.connection_socket.end();
-            }
-        } catch (err) {
-            
-        }
-    }
-}
-
-// Logger interface for user to send log messages to server
-const Logger = function(id) {
-    this.id = id;
-
-    this.info = (format, ...args)            => this._write_log(CommonUtils.LoggingLevels.Info, 0, format, ...args);
-    this.error = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Error, 0, format, ...args);
-    this.debug = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Debug, 0, format, ...args);
-    this.warn = (format, ...args)            => this._write_log(CommonUtils.LoggingLevels.Warning, 0, format, ...args);
-    this.trace = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Trace, 0, format, ...args);
-    this.fatal = (format, ...args)           => this._write_log(CommonUtils.LoggingLevels.Fatal, 0, format, ...args);
-    this.verbose = (vlevel, format, ...args) => this._write_log(CommonUtils.LoggingLevels.Verbose, vlevel, format, ...args);
-
-    //private members
-
-    this._write_log = (level, vlevel, format, ...args) => sendLogRequest(level,
-                                                                         this.id,
-                                                                         this.log_sources.getSourceFile(),
-                                                                         this.log_sources.getSourceLine(),
-                                                                         this.log_sources.getSourceFunc(),
-                                                                         vlevel,
-                                                                         undefined,
-                                                                         format,
-                                                                         ...args);
-
-    this.log_sources = {
-        base_idx: 6,
-        getSourceFile: () => CommonUtils.getSourceFile(this.log_sources.base_idx),
-        getSourceLine: () => CommonUtils.getSourceLine(this.log_sources.base_idx),
-        getSourceFunc: () => CommonUtils.getSourceFunc(this.log_sources.base_idx),
-    };
-}
-
-exports.version = () => require('./../package.json').version;
-exports.type = () => 'js';
-exports.loadConfiguration = loadConfiguration;
-exports.connect = connect;
-exports.disconnect = disconnect;
-exports.isConnected = () => Params.connected;
-exports.getLogger = (id) => (new Logger(id));
+module.exports = ResidueClient;

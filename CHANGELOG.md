@@ -1,5 +1,8 @@
 # Change Log
 
+## [3.0.0]
+- ResidueClient constructible to create unique instances for various clients
+
 ## [2.3.18]
 - Fixed warning log
 

@@ -1,4 +1,5 @@
-var residue = require('residue');
+var ResidueClient = require('residue');
+var residue = new ResidueClient();
 var logger = residue.getLogger('sample-app');
 
 console.log(`Library version: ${residue.version()} (${residue.type()})`);

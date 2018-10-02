@@ -11,12 +11,9 @@ Encryped key secret: `8583fFir`
 
 ### Run
 ```
-cd ROOT/samples/node
 npm install --save
-cd ROOT/samples/node
 npm install -g link
-npm install --save
-npm link {ROOT/src}
+npm link ../../
 node app.js
 ```
 

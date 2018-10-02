@@ -2,7 +2,8 @@ const {app, BrowserWindow} = require('electron');
 
 let mainWindow;
 
-const residue = require('residue');
+var ResidueClient = require('residue');
+var residue = new ResidueClient();
 
 console.log(`Residue library version: v${residue.version()}-${residue.type()}`);
 

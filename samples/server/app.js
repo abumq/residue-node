@@ -5,7 +5,8 @@
 
 var express = require('express');
 
-var residue = require('residue');
+var ResidueClient = require('residue');
+var residue = new ResidueClient();
 var logger = residue.getLogger('sample-app');
 var defaultLogger = residue.getLogger('default');
 
