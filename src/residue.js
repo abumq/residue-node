@@ -282,7 +282,7 @@ const ResidueClient = function() {
       Utils.debugLog('Sending...');
       const self = this;
       socket.write(encryptedRequest, 'utf-8', () => {
-        self.params.locks[socket.address().port] = false;
+        self._params.locks[socket.address().port] = false;
         Utils.vLog(8, 'Unlocking ' + socket.address().port);
         setTimeout(() => {
           if (self._params.sendRequestBacklogCallbacks.length > 0) {
