@@ -32,8 +32,8 @@ try {
   console.log('residue package requires crypto (https://nodejs.org/api/crypto.html). It is disabled in your version of node!');
 }
 
-const DEBUGGING = true;
-const VERBOSE_LEVEL = 9;
+const DEBUGGING = false;
+const VERBOSE_LEVEL = 0;
 
 // Various connection types accepted by the server
 const ConnectType = {
