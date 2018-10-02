@@ -266,7 +266,7 @@ const ResidueClient = function() {
     if (!nolock && this.params.locks[socket.address().port]) {
       this.params.sendRequestBacklogCallbacks.push(() => {
         Utils.debugLog('Sending request via callback');
-        this.sendRequest(request, socket, false, compress);
+        this._sendRequest(request, socket, false, compress);
       });
       return;
     }
@@ -286,7 +286,7 @@ const ResidueClient = function() {
         Utils.vLog(8, 'Unlocking ' + socket.address().port);
         setTimeout(() => {
           if (self.params.sendRequestBacklogCallbacks.length > 0) {
-            const cb = this.params.sendRequestBacklogCallbacks.splice(0, 1)[0];
+            const cb = self.params.sendRequestBacklogCallbacks.splice(0, 1)[0];
             cb();
           }
         }, 10);
