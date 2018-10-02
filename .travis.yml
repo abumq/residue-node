@@ -13,7 +13,8 @@ matrix:
     env:
     - RESIDUE_VERSION=2.1.2 # Do not update this version until residue-cpp/releases has downloadable version. see install.sh
     before_install:
-    - sudo sh -c "$(curl -fsSL https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh)"
+    - wget https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh
+    - sudo sh install.sh $RESIDUE_VERSION
     - export LD_LIBRARY_PATH=/usr/local/lib/
     - ls -l /usr/local/lib/
     - npm install residue-native@latest
