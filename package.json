@@ -1,6 +1,6 @@
 {
   "name": "residue",
-  "version": "3.0.1",
+  "version": "3.0.3",
   "description": "Library to interact with residue server seamlessly.",
   "main": "index.js",
   "scripts": {

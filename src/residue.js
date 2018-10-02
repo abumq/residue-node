@@ -217,7 +217,7 @@ const Utils = {
 
 const ResidueClient = function() {
 
-  this.params = {
+  this._params = {
     // user provided options for seamless connection
     //   app, host, connect_port
     options: {},
@@ -250,8 +250,8 @@ const ResidueClient = function() {
     locks: {},
   };
 
-  this.params.locks[this.params.connectionSocket.address().port] = false;
-  this.params.locks[this.params.loggingSocket.address().port] = false;
+  this._params.locks[this._params.connectionSocket.address().port] = false;
+  this._params.locks[this._params.loggingSocket.address().port] = false;
 
   // Send request to the server
   // This function decides whether to back-log the request or dispatch it to
@@ -263,8 +263,8 @@ const ResidueClient = function() {
     if (typeof compress === 'undefined') {
       compress = false;
     }
-    if (!nolock && this.params.locks[socket.address().port]) {
-      this.params.sendRequestBacklogCallbacks.push(() => {
+    if (!nolock && this._params.locks[socket.address().port]) {
+      this._params.sendRequestBacklogCallbacks.push(() => {
         Utils.debugLog('Sending request via callback');
         this._sendRequest(request, socket, false, compress);
       });
@@ -274,10 +274,10 @@ const ResidueClient = function() {
     if (compress) {
       finalRequest = new Buffer(zlib.deflateSync(finalRequest)).toString('base64');
     }
-    const encryptedRequest = Utils.encrypt(finalRequest, this.params.connection);
+    const encryptedRequest = Utils.encrypt(finalRequest, this._params.connection);
     Utils.vLog(9, 'Payload (Plain): ', encryptedRequest);
     Utils.vLog(8, 'Locking ' + socket.address().port);
-    this.params.locks[socket.address().port] = true;
+    this._params.locks[socket.address().port] = true;
     try {
       Utils.debugLog('Sending...');
       const self = this;
@@ -293,17 +293,17 @@ const ResidueClient = function() {
       });
     } catch (e) {
       Utils.vLog(8, 'Unlocking ' + socket.address().port + ' [because of exception]', e);
-      this.params.locks[socket.address().port] = false;
+      this._params.locks[socket.address().port] = false;
       Utils.debugLog('Error while writing to socket...');
       Utils.debugLog(e);
     }
   };
 
   // Handle response from the server on connection requests
-  this.params.connectionSocket.on('data', (data) => {
-    let decryptedData = Utils.decrypt(data.toString(), this.params.connection);
+  this._params.connectionSocket.on('data', (data) => {
+    let decryptedData = Utils.decrypt(data.toString(), this._params.connection);
     if (decryptedData === null) {
-      decryptedData = Utils.decryptRSA(data, this.params.rsaKey.privateKey);
+      decryptedData = Utils.decryptRSA(data, this._params.rsaKey.privateKey);
     }
     if (decryptedData === null) {
       Utils.log('Unable to read response: ' + data);
@@ -315,86 +315,86 @@ const ResidueClient = function() {
       Utils.debugLog('Connecting to Residue Server...(ack)');
 
       // connection re-estabilished
-      this.params.disconnected_by_remote = false;
+      this._params.disconnected_by_remote = false;
 
-      this.params.connection = dataJson;
+      this._params.connection = dataJson;
       // Need to acknowledge
       const request = {
         _t: Utils.getTimestamp(),
         type: ConnectType.ACK,
-        client_id: this.params.connection.client_id
+        client_id: this._params.connection.client_id
       };
-      this._sendRequest(request, this.params.connectionSocket, true);
+      this._sendRequest(request, this._params.connectionSocket, true);
     } else if (dataJson.status === 0 && typeof dataJson.key !== 'undefined' && dataJson.ack === 1) {
       Utils.debugLog('Estabilishing full connection...');
-      this.params.connection = dataJson;
-      this.params.connected = true;
-      Utils.vLog(8, `Connection socket: ${this.params.connectionSocket.address().port}`);
-      if (!this.params.isLoggingSocketConnected) {
-        this.params.loggingSocket.connect(this.params.connection.logging_port, this.params.options.host, () => {
-          Utils.log(`Connected to Residue (v${this.params.connection.server_info.version})!`);
-          this.params.isLoggingSocketConnected = true;
-          Utils.vLog(8, `Logging socket: ${this.params.loggingSocket.address().port}`);
-          this.params.connecting = false;
-          const callbackCounts = this.params.loggingSocketCallbacks.length;
+      this._params.connection = dataJson;
+      this._params.connected = true;
+      Utils.vLog(8, `Connection socket: ${this._params.connectionSocket.address().port}`);
+      if (!this._params.isLoggingSocketConnected) {
+        this._params.loggingSocket.connect(this._params.connection.logging_port, this._params.options.host, () => {
+          Utils.log(`Connected to Residue (v${this._params.connection.server_info.version})!`);
+          this._params.isLoggingSocketConnected = true;
+          Utils.vLog(8, `Logging socket: ${this._params.loggingSocket.address().port}`);
+          this._params.connecting = false;
+          const callbackCounts = this._params.loggingSocketCallbacks.length;
           for (let idx = 0; idx < callbackCounts; ++idx) {
-            const cb = this.params.loggingSocketCallbacks.splice(0, 1)[0];
+            const cb = this._params.loggingSocketCallbacks.splice(0, 1)[0];
             cb();
           }
         });
       } else {
-        this.params.connecting = false;
-        const callbackCounts = this.params.loggingSocketCallbacks.length;
+        this._params.connecting = false;
+        const callbackCounts = this._params.loggingSocketCallbacks.length;
         for (let idx = 0; idx < callbackCounts; ++idx) {
           // trigger all the pending callbacks from backlog
-          this.params.loggingSocketCallbacks.splice(0, 1)[0]();
+          this._params.loggingSocketCallbacks.splice(0, 1)[0]();
         }
       }
     } else {
       Utils.log('Error while connecting to server: ');
       Utils.log(dataJson);
-      this.params.connecting = false;
+      this._params.connecting = false;
     }
   });
 
   // Handle when connection is destroyed
-  this.params.connectionSocket.on('close', () => {
+  this._params.connectionSocket.on('close', () => {
     Utils.log('Remote connection closed!');
-    if (this.params.connected) {
-      this.params.disconnected_by_remote = true;
+    if (this._params.connected) {
+      this._params.disconnected_by_remote = true;
     }
     this.disconnect();
   });
 
-  this.params.connectionSocket.on('error', (error) => {
+  this._params.connectionSocket.on('error', (error) => {
     Utils.log('Error occurred while connecting to residue server');
     Utils.log(error);
   });
 
   // Handle destruction of connection to logging server
-  this.params.loggingSocket.on('close', () => {
-    this.params.isLoggingSocketConnected = false;
+  this._params.loggingSocket.on('close', () => {
+    this._params.isLoggingSocketConnected = false;
   });
 
   // Notice we do not have any handler for loggingSocket response
   // this is because that is async connection
-  this.params.loggingSocket.on('data', () => {});
+  this._params.loggingSocket.on('data', () => {});
 
   this._shouldTouch = () => {
-    if (!this.params.connected || this.params.connecting) {
+    if (!this._params.connected || this._params.connecting) {
       // Can't touch
       return false;
     }
-    if (this.params.connection.age === 0) {
+    if (this._params.connection.age === 0) {
       // Always alive!
       return false;
     }
-    return this.params.connection.age - (Utils.now() - this.params.connection.date_created) < TOUCH_THRESHOLD;
+    return this._params.connection.age - (Utils.now() - this._params.connection.date_created) < TOUCH_THRESHOLD;
   };
 
   this._touch = () => {
-    if (this.params.connected) {
-      if (this.params.connecting) {
+    if (this._params.connected) {
+      if (this._params.connecting) {
         Utils.debugLog('Still touching...');
         return;
       }
@@ -403,57 +403,57 @@ const ResidueClient = function() {
         const request = {
           _t: Utils.getTimestamp(),
           type: ConnectType.TOUCH,
-          client_id: this.params.connection.client_id
+          client_id: this._params.connection.client_id
         };
-        this._sendRequest(request, this.params.connectionSocket);
-        this.params.connecting = true;
+        this._sendRequest(request, this._params.connectionSocket);
+        this._params.connecting = true;
       } else {
-        Utils.log('Could not touch, client already dead ' + (this.params.connection.date_created + this.params.connection.age) + ' < ' + Utils.now());
+        Utils.log('Could not touch, client already dead ' + (this._params.connection.date_created + this._params.connection.age) + ' < ' + Utils.now());
       }
     }
   };
 
   this._isClientValid = () => {
-    if (!this.params.connected) {
+    if (!this._params.connected) {
       return false;
     }
-    if (this.params.connection.age == 0) {
+    if (this._params.connection.age == 0) {
       return true;
     }
-    return this.params.connection.date_created + this.params.connection.age >= Utils.now();
+    return this._params.connection.date_created + this._params.connection.age >= Utils.now();
   };
 
   // Send log request to the server. No response is expected
   this._sendLogRequest = (level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, logDatetime, format, ...args) => {
     let datetime = logDatetime;
     if (typeof datetime === 'undefined') {
-      datetime = this.params.options.utc_time ? Utils.getCurrentTimeUTC() : new Date().getTime();
-      if (this.params.options.time_offset) {
-        datetime += (1000 * this.params.options.time_offset); // offset is in seconds
+      datetime = this._params.options.utc_time ? Utils.getCurrentTimeUTC() : new Date().getTime();
+      if (this._params.options.time_offset) {
+        datetime += (1000 * this._params.options.time_offset); // offset is in seconds
       }
     }
-    if (this.params.connecting) {
+    if (this._params.connecting) {
       Utils.debugLog('Still connecting...');
-      this.params.loggingSocketCallbacks.push(() => {
+      this._params.loggingSocketCallbacks.push(() => {
         this._sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
       });
       return;
     }
 
-    if (!this.params.connected) {
+    if (!this._params.connected) {
       Utils.log('Not connected to the server yet');
-      if (this.params.disconnected_by_remote) {
+      if (this._params.disconnected_by_remote) {
         Utils.debugLog('Queueing...');
-        this.params.loggingSocketCallbacks.push(() => {
+        this._params.loggingSocketCallbacks.push(() => {
           this._sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
         });
-        const totalListener = this.params.connectionSocket.listenerCount('connect');
+        const totalListener = this._params.connectionSocket.listenerCount('connect');
         if (totalListener >= 1) {
           Utils.log('Checking for connection...' + totalListener);
-          this.params.connectionSocket.emit('connect');
+          this._params.connectionSocket.emit('connect');
         } else {
           Utils.log('Retrying to connect...');
-          connect(this.params.options);
+          connect(this._params.options);
         }
       }
       return;
@@ -463,21 +463,21 @@ const ResidueClient = function() {
 
     if (!this._isClientValid()) {
       Utils.debugLog('Resetting connection...');
-      this.params.loggingSocketCallbacks.push(() => {
+      this._params.loggingSocketCallbacks.push(() => {
         Utils.debugLog('Sending log from log callback... [' + loggerId + ']');
         sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
       });
       Utils.debugLog('Destroying connection socket');
-      this.params.connectionSocket.destroy();
-      this.params.loggingSocket.destroy();
+      this._params.connectionSocket.destroy();
+      this._params.loggingSocket.destroy();
       disconnect();
-      connect(this.params.options);
+      connect(this._params.options);
       return;
     }
 
     if (this._shouldTouch()) {
       Utils.debugLog('Touching first...');
-      this.params.loggingSocketCallbacks.push(() => {
+      this._params.loggingSocketCallbacks.push(() => {
         Utils.debugLog('Sending log from touch callback... [' + loggerId + ']');
         this._sendLogRequest(level, loggerId, sourceFile, sourceLine, sourceFunc, verboseLevel, datetime, format, ...args);
       });
@@ -496,13 +496,13 @@ const ResidueClient = function() {
       file: sourceFile,
       line: sourceLine,
       func: sourceFunc,
-      app: this.params.options.application_id,
+      app: this._params.options.application_id,
       level: level,
     };
     if (typeof verboseLevel !== 'undefined') {
       request.vlevel = verboseLevel;
     }
-    this._sendRequest(request, this.params.loggingSocket, false, Utils.hasFlag(Flag.COMPRESSION, this.params.connection));
+    this._sendRequest(request, this._params.loggingSocket, false, Utils.hasFlag(Flag.COMPRESSION, this._params.connection));
   };
 
   // public exported functions
@@ -511,33 +511,33 @@ const ResidueClient = function() {
 
   this.type = () => 'js';
 
-  this.isConnected = () => this.params.connected;
+  this.isConnected = () => this._params.connected;
 
   // Securily connect to residue server using defined options
   this.connect = (options) => {
-    if (this.params.connected && this.params.connection !== null) {
-      Utils.log('Already connected to the server with ID [' + this.params.connection.client_id + ']')
+    if (this._params.connected && this._params.connection !== null) {
+      Utils.log('Already connected to the server with ID [' + this._params.connection.client_id + ']')
       return;
     }
-    this.params.connecting = true;
+    this._params.connecting = true;
     try {
-      this.params.options = typeof options === 'undefined' ? this.params.options : options;
+      this._params.options = typeof options === 'undefined' ? this._params.options : options;
       // Normalize
-      if (typeof this.params.options.url !== 'undefined') {
-        const parts = this.params.options.url.split(':');
+      if (typeof this._params.options.url !== 'undefined') {
+        const parts = this._params.options.url.split(':');
         if (parts.length < 2 || !isNormalInteger(parts[1])) {
           throw 'Invalid URL format for residue';
         }
-        this.params.options.host = parts[0];
-        this.params.options.connect_port = parseInt(parts[1]);
+        this._params.options.host = parts[0];
+        this._params.options.connect_port = parseInt(parts[1]);
       }
-      if (typeof this.params.options.client_id === 'undefined' &&
-        typeof this.params.options.client_private_key === 'undefined') {
+      if (typeof this._params.options.client_id === 'undefined' &&
+        typeof this._params.options.client_private_key === 'undefined') {
         // Generate new key for key-exchange
-        const keySize = this.params.options.rsaKey_size || 2048;
+        const keySize = this._params.options.rsaKey_size || 2048;
         Utils.log('Generating ' + keySize + '-bit key...');
         const generatedKey = Utils.generateKeypair(keySize);
-        this.params.rsaKey = {
+        this._params.rsaKey = {
           isGenerated: true,
           privateKey: {
             key: generatedKey.privatePEM,
@@ -550,78 +550,78 @@ const ResidueClient = function() {
         };
         Utils.debugLog('Key generated');
       } else {
-        this.params.rsaKey = {
+        this._params.rsaKey = {
           generated: false,
           privateKey: {
-            key: fs.readFileSync(path.resolve(this.params.options.client_private_key)).toString(),
-            passphrase: this.params.options.client_key_secret ?
-              new Buffer(this.params.options.client_key_secret, 'hex').toString('utf-8') : null,
+            key: fs.readFileSync(path.resolve(this._params.options.client_private_key)).toString(),
+            passphrase: this._params.options.client_key_secret ?
+              new Buffer(this._params.options.client_key_secret, 'hex').toString('utf-8') : null,
             padding: crypto.constants.RSA_PKCS1_PADDING,
           },
           publicKey: {
             padding: crypto.constants.RSA_PKCS1_PADDING,
           }
         };
-        if (typeof this.params.options.client_public_key !== 'undefined') {
-          this.params.rsaKey.publicKey.key = fs.readFileSync(path.resolve(this.params.options.client_public_key)).toString();
+        if (typeof this._params.options.client_public_key !== 'undefined') {
+          this._params.rsaKey.publicKey.key = fs.readFileSync(path.resolve(this._params.options.client_public_key)).toString();
         } else {
-          if (this.params.rsaKey.privateKey.passphrase === null) {
-            this.params.rsaKey.publicKey.key = Utils.extractPublicKey(this.params.rsaKey.privateKey);
+          if (this._params.rsaKey.privateKey.passphrase === null) {
+            this._params.rsaKey.publicKey.key = Utils.extractPublicKey(this._params.rsaKey.privateKey);
           } else {
             throw 'ERROR: You specified client_key_secret and did not provide client_public_key. We cannot extract public-key for encrypted private keys. Please provide public key manually';
           }
         }
         Utils.vLog(8, 'Known client...');
       }
-      if (typeof this.params.options.server_public_key !== 'undefined') {
-        this.params.serverRsaKey = {
+      if (typeof this._params.options.server_public_key !== 'undefined') {
+        this._params.serverRsaKey = {
           publicKey: {
-            key: fs.readFileSync(path.resolve(this.params.options.server_public_key)).toString(),
+            key: fs.readFileSync(path.resolve(this._params.options.server_public_key)).toString(),
             padding: crypto.constants.RSA_PKCS1_PADDING,
           },
         };
       }
       Utils.log('Intializing connection...');
-      this.params.connectionSocket.connect(this.params.options.connect_port, this.params.options.host, () => {
+      this._params.connectionSocket.connect(this._params.options.connect_port, this._params.options.host, () => {
         let request = {
           _t: Utils.getTimestamp(),
           type: ConnectType.CONN,
         };
-        if (this.params.rsaKey.isGenerated) {
-          request.rsa_public_key = Utils.base64Encode(this.params.rsaKey.publicKey.key);
+        if (this._params.rsaKey.isGenerated) {
+          request.rsa_public_key = Utils.base64Encode(this._params.rsaKey.publicKey.key);
         } else {
-          request.client_id = this.params.options.client_id;
+          request.client_id = this._params.options.client_id;
         }
         let r = JSON.stringify(request);
-        if (this.params.serverRsaKey !== null) {
-          r = Utils.encryptRSA(r, this.params.serverRsaKey.publicKey);
+        if (this._params.serverRsaKey !== null) {
+          r = Utils.encryptRSA(r, this._params.serverRsaKey.publicKey);
         }
         const fullReq = r + PACKET_DELIMITER;
-        this.params.connectionSocket.write(fullReq);
+        this._params.connectionSocket.write(fullReq);
       });
     } catch (e) {
       Utils.log('Error occurred while connecting to residue server');
       Utils.log(e);
-      this.params.connecting = false;
+      this._params.connecting = false;
     }
   };
 
   // Disconnect from the server safely.
   this.disconnect = () => {
     Utils.traceLog('disconnect()');
-    this.params.connected = false;
-    this.params.connecting = false;
-    this.params.connection = null;
-    this.params.isLoggingSocketConnected = false;
-    if (this.params.connected) {
+    this._params.connected = false;
+    this._params.connecting = false;
+    this._params.connection = null;
+    this._params.isLoggingSocketConnected = false;
+    if (this._params.connected) {
       try {
-        if (this.params.connectionSocket.destroyed) {
+        if (this._params.connectionSocket.destroyed) {
           Utils.log('Disconnecting gracefully...');
-          this.params.loggingSocket.end();
+          this._params.loggingSocket.end();
         } else {
           Utils.log('Disconnecting...');
           // Following will call 'close' -> disconnect -> gracefully close
-          this.params.connectionSocket.end();
+          this._params.connectionSocket.end();
         }
       } catch (err) {
 
@@ -635,7 +635,7 @@ const ResidueClient = function() {
       console.error('Please select JSON or JSON filename that contains configurations');
       return false;
     }
-    this.params.options = JSON.parse(conf);
+    this._params.options = JSON.parse(conf);
     Utils.log('Configuration loaded');
     return true;
   };
