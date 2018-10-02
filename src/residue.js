@@ -285,8 +285,8 @@ const ResidueClient = function() {
         self.params.locks[socket.address().port] = false;
         Utils.vLog(8, 'Unlocking ' + socket.address().port);
         setTimeout(() => {
-          if (self.params.sendRequestBacklogCallbacks.length > 0) {
-            const cb = self.params.sendRequestBacklogCallbacks.splice(0, 1)[0];
+          if (self._params.sendRequestBacklogCallbacks.length > 0) {
+            const cb = self._params.sendRequestBacklogCallbacks.splice(0, 1)[0];
             cb();
           }
         }, 10);
