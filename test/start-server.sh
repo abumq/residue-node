@@ -10,7 +10,7 @@ if [ "$USE_NPM" = "true" ];then
     nohup residue-$TYPE $RESIDUE_HOME/conf.json -v --force-without-root --residue-home=$RESIDUE_HOME &
 else
 
-    SERVER_VERSION=2.3.3
+    SERVER_VERSION=2.3.5
 
     wget https://github.com/muflihun/residue/releases/download/v$SERVER_VERSION/residue-$SERVER_VERSION-$TYPE-debug-x86_64.tar.gz
     tar -xf residue-$SERVER_VERSION-$TYPE-debug-x86_64.tar.gz

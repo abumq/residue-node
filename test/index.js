@@ -2,6 +2,7 @@ const ResidueClient = require('../');
 const residue = new ResidueClient();
 const fs = require('fs');
 
+console.log('platform: ', process.platform);
 console.log(`version: ${residue.version()} (${residue.type()})`);
 
 if (process.platform === 'linux' || process.platform === 'darwin-') {
