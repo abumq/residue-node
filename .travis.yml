@@ -13,7 +13,7 @@ matrix:
     env:
     - RESIDUE_VERSION=2.1.2 # Do not update this version until residue-cpp/releases has downloadable version. see install.sh
     before_install:
-    - wget https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh
+    - wget https://raw.githubusercontent.com/zuhd-org/residue-cpp/master/install.sh
     - sudo sh install.sh $RESIDUE_VERSION
     - export LD_LIBRARY_PATH=/usr/local/lib/
     - ls -l /usr/local/lib/
@@ -23,7 +23,7 @@ matrix:
     env:
     - RESIDUE_VERSION=2.1.2
     before_install:
-    - wget https://raw.githubusercontent.com/muflihun/residue-cpp/master/install.sh
+    - wget https://raw.githubusercontent.com/zuhd-org/residue-cpp/master/install.sh
     - sudo sh install.sh $RESIDUE_VERSION
     - ls -l /usr/local/lib/
     - export LD_LIBRARY_PATH=/usr/local/lib/

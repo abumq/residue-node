@@ -1,7 +1,7 @@
 //
 // Official Node.js client library for Residue logging server
 //
-// Copyright 2017-present Muflihun Labs
+// Copyright 2017-present Zuhd Web Services
 //
 // This module provides interface for connecting and interacting with
 // residue server seamlessly. Once you are connected this module
@@ -12,8 +12,8 @@
 // Author: @abumusamq
 //
 // https://muflihun.com
-// https://muflihun.github.io/residue
-// https://github.com/muflihun/residue-node
+// https://zuhd.org
+// https://github.com/zuhd-org/residue-node
 //
 
 "use strict";

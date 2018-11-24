@@ -2,11 +2,12 @@
 
 # Residue Node.js Client
 
-[![Build Status](https://img.shields.io/travis/muflihun/residue-node/master.svg)](https://travis-ci.org/muflihun/residue-node/branches)
+[![Build Status](https://img.shields.io/travis/zuhd-org/residue-node/master.svg)](https://travis-ci.org/zuhd-org/residue-node/branches)
 [![Build status](https://ci.appveyor.com/api/projects/status/rp6ukh5apm5ryjxq?svg=true)](https://ci.appveyor.com/project/abumusamq/residue-node)
 [![Version](https://img.shields.io/npm/v/residue.svg)](https://www.npmjs.com/package/residue)
-[![GitHub license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/muflihun/residue-node/blob/master/LICENSE)
-[![Donate](https://img.shields.io/badge/Donate-PayPal-green.svg)](https://www.paypal.me/MuflihunDotCom/25)
+[![GitHub license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/zuhd-org/residue-node/blob/master/LICENSE)
+
+[![Donate](https://muflihun.github.io/donate.png?v2)](https://www.paypal.me/zuhd/25)
 
 Secure Node.js library to interact with residue server seamlessly.
 
@@ -91,20 +92,20 @@ logger.verbose(verbose_level, ...);
 ```
 
 ## Native Binding
-Residue Node.js also comes with native binding that uses [C++ client library](https://github.com/muflihun/residue-cpp) to manage connections and asyncronous requests.
+Residue Node.js also comes with native binding that uses [C++ client library](https://github.com/zuhd-org/residue-cpp) to manage connections and asyncronous requests.
 
 If you have installed [`residue-native`](https://www.npmjs.com/package/residue-native) package alongside `residue`, native binding will be used otherwise it will fallback to JS implementation.
 
 ## Sample
-You can check out [sample client apps](https://github.com/muflihun/residue-node/blob/master/samples) for practical use of this package.
+You can check out [sample client apps](https://github.com/zuhd-org/residue-node/blob/master/samples) for practical use of this package.
 
 ## License
 ```
-Copyright 2017-present Muflihun Labs
+Copyright 2017-present Zuhd Web Services
 Copyright 2017-present @abumusamq
 
-https://github.com/muflihun/
-https://muflihun.github.io/
+https://github.com/zuhd-org/
+https://zuhd.org
 https://muflihun.com/
 
 Licensed under the Apache License, Version 2.0 (the "License");

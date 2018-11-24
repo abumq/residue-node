@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Muflihun Labs <info@muflihun.com> (https://muflihun.com/)",
+  "author": "Zuhd Web Services <opensource@zuhd.org>",
   "license": "MIT",
   "dependencies": {
     "express": "^4.14.0",
