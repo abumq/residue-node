@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zuhd-org/residue-node.git"
+    "url": "git+https://github.com/amrayn/residue-node.git"
   },
   "files": [
     "index.js",
@@ -25,12 +25,12 @@
     "easylogging",
     "easylogging++"
   ],
-  "author": "Zuhd Web Services <opensource@zuhd.org>",
+  "author": "Amrayn Web Services <opensource@amrayn.com>",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/zuhd-org/residue-node/issues"
+    "url": "https://github.com/amrayn/residue-node/issues"
   },
-  "homepage": "https://github.com/zuhd-org/residue-node#readme",
+  "homepage": "https://github.com/amrayn/residue-node#readme",
   "dependencies": {
     "node-rsa": "^0.4.2",
     "residue-utils": "^1.0.0"

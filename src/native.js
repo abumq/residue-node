@@ -1,5 +1,5 @@
 //
-// Copyright 2017-present Zuhd Web Services
+// Copyright 2017-present Amrayn Web Services
 //
 // This module provides bridge to use C++ client library
 // to handle the connection and conversation with the server
@@ -7,9 +7,9 @@
 // Author: @abumusamq
 //
 // https://muflihun.com
-// https://zuhd.org
-// https://github.com/zuhd-org/residue-node
-// https://github.com/zuhd-org/residue-node-native
+// https://amrayn.com
+// https://github.com/amrayn/residue-node
+// https://github.com/amrayn/residue-node-native
 //
 
 "use strict";

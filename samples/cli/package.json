@@ -6,7 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Zuhd Web Services <opensource@zuhd.org>",
+  "author": "Amrayn Web Services <opensource@amrayn.com>",
   "license": "MIT",
   "dependencies": {
     "residue": "^2.3.17"
