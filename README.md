@@ -1,4 +1,4 @@
-﷽
+<p align="center">﷽</p>
 
 <p align="center">
     Residue Node.js Client
