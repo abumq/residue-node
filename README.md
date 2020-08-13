@@ -1,15 +1,32 @@
 ﷽
 
-# Residue Node.js Client
+<p align="center">
+    Residue Node.js Client
+    <p align="center">Secure Node.js library to interact with residue server seamlessly.</p>
+</p>
 
-[![Build Status](https://img.shields.io/travis/amrayn/residue-node/master.svg)](https://travis-ci.org/amrayn/residue-node/branches)
-[![Build status](https://ci.appveyor.com/api/projects/status/rp6ukh5apm5ryjxq?svg=true)](https://ci.appveyor.com/project/abumusamq/residue-node)
-[![Version](https://img.shields.io/npm/v/residue.svg)](https://www.npmjs.com/package/residue)
-[![GitHub license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/amrayn/residue-node/blob/master/LICENSE)
+<p align="center">
+    •   •   •
+</p>
 
-[![Donate](https://amrayn.github.io/donate.png?v2)](https://amrayn.com/donate)
+<p align="center">
+  <a aria-label="Build Status" href="https://travis-ci.org/amrayn/residue-node/branches">
+    <img alt="" src="https://img.shields.io/travis/amrayn/residue-node/master.svg?style=for-the-badge&labelColor=000000">
+  </a>
+  <a aria-label="NPM version" href="https://www.npmjs.com/package/residue">
+    <img alt="" src="https://img.shields.io/npm/v/residue.svg?style=for-the-badge&labelColor=000000">
+  </a>
+  <a aria-label="License" href="https://github.com/amrayn/residue-node/blob/master/LICENSE">
+    <img alt="" src="https://img.shields.io/npm/l/residue?style=for-the-badge&labelColor=000000">
+  </a>
+  <a aria-label="Donate via PayPal" href="https://amrayn.com/donate">
+    <img alt="" src="https://img.shields.io/static/v1?label=Donate&message=PayPal&color=purple&style=for-the-badge&labelColor=000000">
+  </a>
+</p>
 
-Secure Node.js library to interact with residue server seamlessly.
+<p align="center">
+    •   •   •
+</p>
 
 This module provides interface for connecting and interacting with residue server seamlessly, means, once you are connected this module takes care of expired tokens and clients and keep itself updated with latest tokens and ping server when needed to stay alive.
 
