@@ -453,7 +453,7 @@ const ResidueClient = function() {
           this._params.connectionSocket.emit('connect');
         } else {
           Utils.log('Retrying to connect...');
-          connect(this._params.options);
+          this.connect(this._params.options);
         }
       }
       return;
@@ -555,7 +555,7 @@ const ResidueClient = function() {
           privateKey: {
             key: fs.readFileSync(path.resolve(this._params.options.client_private_key)).toString(),
             passphrase: this._params.options.client_key_secret ?
-              new Buffer(this._params.options.client_key_secret, 'hex').toString('utf-8') : null,
+              new Buffer(this._params.options.client_key_secret, 'hex').toString('utf-8') : '',
             padding: crypto.constants.RSA_PKCS1_PADDING,
           },
           publicKey: {
