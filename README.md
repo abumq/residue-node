@@ -6,10 +6,6 @@
 </p>
 
 <p align="center">
-    •   •   •
-</p>
-
-<p align="center">
   <a aria-label="Build Status" href="https://travis-ci.org/abumq/residue-node/branches">
     <img alt="" src="https://img.shields.io/travis/abumq/residue-node/master.svg?style=for-the-badge&labelColor=000000">
   </a>
@@ -19,13 +15,9 @@
   <a aria-label="License" href="https://github.com/abumq/residue-node/blob/master/LICENSE">
     <img alt="" src="https://img.shields.io/npm/l/residue?style=for-the-badge&labelColor=000000">
   </a>
-  <a aria-label="Donate via PayPal" href="https://abumq.com/donate">
+  <a aria-label="Donate via PayPal" href="https://amrayn.com/donate">
     <img alt="" src="https://img.shields.io/static/v1?label=Donate&message=PayPal&color=purple&style=for-the-badge&labelColor=000000">
   </a>
-</p>
-
-<p align="center">
-    •   •   •
 </p>
 
 This module provides interface for connecting and interacting with residue server seamlessly, means, once you are connected this module takes care of expired tokens and clients and keep itself updated with latest tokens and ping server when needed to stay alive.
