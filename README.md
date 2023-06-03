@@ -10,16 +10,16 @@
 </p>
 
 <p align="center">
-  <a aria-label="Build Status" href="https://travis-ci.org/amrayn/residue-node/branches">
-    <img alt="" src="https://img.shields.io/travis/amrayn/residue-node/master.svg?style=for-the-badge&labelColor=000000">
+  <a aria-label="Build Status" href="https://travis-ci.org/abumq/residue-node/branches">
+    <img alt="" src="https://img.shields.io/travis/abumq/residue-node/master.svg?style=for-the-badge&labelColor=000000">
   </a>
   <a aria-label="NPM version" href="https://www.npmjs.com/package/residue">
     <img alt="" src="https://img.shields.io/npm/v/residue.svg?style=for-the-badge&labelColor=000000">
   </a>
-  <a aria-label="License" href="https://github.com/amrayn/residue-node/blob/master/LICENSE">
+  <a aria-label="License" href="https://github.com/abumq/residue-node/blob/master/LICENSE">
     <img alt="" src="https://img.shields.io/npm/l/residue?style=for-the-badge&labelColor=000000">
   </a>
-  <a aria-label="Donate via PayPal" href="https://amrayn.com/donate">
+  <a aria-label="Donate via PayPal" href="https://abumq.com/donate">
     <img alt="" src="https://img.shields.io/static/v1?label=Donate&message=PayPal&color=purple&style=for-the-badge&labelColor=000000">
   </a>
 </p>
@@ -51,7 +51,7 @@ Valid options are:
 }
 ```
 
-Please refer to [`loadConfiguration`](https://amrayn.github.io/residue/docs/class_residue.html#a8292657c93a775b6cbf22c6d4f1166f4) in our C++ library's documentation for more details.
+Please refer to [`loadConfiguration`](https://abumq.github.io/residue/docs/class_residue.html#a8292657c93a775b6cbf22c6d4f1166f4) in our C++ library's documentation for more details.
 
 #### `loadConfiguration(jsonFilename)`
 Loads configurations / options via json file. Returns true if successfully loaded, otherwise false.
@@ -109,21 +109,16 @@ logger.verbose(verbose_level, ...);
 ```
 
 ## Native Binding
-Residue Node.js also comes with native binding that uses [C++ client library](https://github.com/amrayn/residue-cpp) to manage connections and asyncronous requests.
+Residue Node.js also comes with native binding that uses [C++ client library](https://github.com/abumq/residue-cpp) to manage connections and asyncronous requests.
 
 If you have installed [`residue-native`](https://www.npmjs.com/package/residue-native) package alongside `residue`, native binding will be used otherwise it will fallback to JS implementation.
 
 ## Sample
-You can check out [sample client apps](https://github.com/amrayn/residue-node/blob/master/samples) for practical use of this package.
+You can check out [sample client apps](https://github.com/abumq/residue-node/blob/master/samples) for practical use of this package.
 
 ## License
 ```
-Copyright 2017-present Amrayn Web Services
-Copyright 2017-present @abumusamq
-
-https://github.com/amrayn/
-https://amrayn.com
-https://muflihun.com/
+Copyright 2017-present @abumq (Majid Q.)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.

@@ -1,19 +1,13 @@
 //
 // Official Node.js client library for Residue logging server
 //
-// Copyright 2017-present Amrayn Web Services
+// Copyright 2017-present @abumq (Majid Q.)
 //
 // This module provides interface for connecting and interacting with
 // residue server seamlessly. Once you are connected this module
 // takes care of lost connections, expired clients
 // and keep itself updated with parameters and touch server when
 // needed to stay alive.
-//
-// Author: @abumusamq
-//
-// https://muflihun.com
-// https://amrayn.com
-// https://github.com/amrayn/residue-node
 //
 
 "use strict";
